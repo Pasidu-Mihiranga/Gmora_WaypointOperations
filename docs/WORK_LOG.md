@@ -4,6 +4,30 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Production HTTPS deployment, DuckDNS SSL & CI/CD deployment pipeline
+
+- Configured domain `techtrithalon.duckdns.org` pointing to EC2 (`3.215.181.43`) and provisioned a Let's Encrypt SSL certificate via Certbot.
+- Added `infrastructure/compose/ec2-https.yml` and `infrastructure/compose/ec2-https.nginx.conf` terminating SSL on port 443 with an automatic HTTP (port 80) -> HTTPS 301 redirect.
+- Seeded operational database using Approach B (competition reference CSVs: General Data and Test Data). PostgreSQL successfully populated with:
+  - 120 outlets, 60 fleet vehicles, 910 calendar days, 12 districts, 9 service allowances.
+  - 85 demo customer orders, 38 demo fleet state rows for demo date `2026-06-26`.
+- Provisioned the 4 user accounts with `.env` credentials and verified logins with live curl:
+  - Dispatcher (`DSP-001` / `Dispatcher12`)
+  - Store Manager (`STM-001` / `StoreManager12`, Outlet `OUT001`)
+  - Loader (`LDR-001` / `LoaderPass12`, Depot `Peliyagoda`)
+  - Driver (`DRV-001` / `DriverPass12`, Vehicle `VEH036`)
+- Executed comprehensive live test suite asserting:
+  - System health and intelligence reachability (200 OK)
+  - HTTP -> HTTPS 301 redirection
+  - All 4 role logins and cookie sessions (200 OK)
+  - Rejection of invalid credentials (401 UNAUTHENTICATED)
+  - Authenticated reference summary and orders endpoints (200 OK)
+  - Role separation security (403 FORBIDDEN on store manager accessing dispatcher routes)
+  - Store manager product catalog retrieval (200 OK)
+- Configured GitHub Secrets via `gh` CLI (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`).
+- Added automated `deploy` job to `.github/workflows/ci.yml` that deploys to EC2 via SSH upon successful tests and smoke checks on push to `main`.
+
+
 ## 2026-10-04 — Store manager catalog (synthetic) and order lines
 
 - Why: the Figma place-order flow is built on items and categories, but the dataset has none. All 92,307 historical orders carry only `order_units` ("items or cases"), weight and volume; the booklet only says what each brand sells. The owner approved a synthetic catalog without prices.

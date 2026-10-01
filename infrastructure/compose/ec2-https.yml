@@ -1,0 +1,54 @@
+# Production HTTPS deployment for EC2 with DuckDNS domain and Let's Encrypt SSL.
+# Use with: docker compose -f docker-compose.yml -f infrastructure/compose/ec2-https.yml up --build -d
+services:
+  postgres:
+    ports: !override []
+
+  intelligence:
+    ports: !override []
+
+  api:
+    ports: !override []
+    environment:
+      WEB_ORIGINS: https://${PUBLIC_HOST:-techtrithalon.duckdns.org},http://${PUBLIC_HOST:-techtrithalon.duckdns.org}
+      COOKIE_SECURE: "true"
+      REFERENCE_SEED_ON_STARTUP: "true"
+      DEMO_SEED_ON_STARTUP: "true"
+      FORECAST_SEED_ON_STARTUP: "false"
+      SEED_ACCOUNTS_ENABLED: "true"
+      DEMO_CLOCK_INSTANT: ${DEMO_CLOCK_INSTANT:-2026-06-25T11:00:00Z}
+      DEMO_OPERATING_DATE: ${DEMO_OPERATING_DATE:-2026-06-26}
+      SEED_DISPATCHER_USERNAME: ${SEED_DISPATCHER_USERNAME:-DSP-001}
+      SEED_DISPATCHER_PASSWORD: ${SEED_DISPATCHER_PASSWORD:-Dispatcher12}
+      SEED_STORE_MANAGER_USERNAME: ${SEED_STORE_MANAGER_USERNAME:-STM-001}
+      SEED_STORE_MANAGER_PASSWORD: ${SEED_STORE_MANAGER_PASSWORD:-StoreManager12}
+      SEED_STORE_MANAGER_OUTLET: ${SEED_STORE_MANAGER_OUTLET:-OUT001}
+      SEED_LOADER_USERNAME: ${SEED_LOADER_USERNAME:-LDR-001}
+      SEED_LOADER_PASSWORD: ${SEED_LOADER_PASSWORD:-LoaderPass12}
+      SEED_LOADER_DEPOT: ${SEED_LOADER_DEPOT:-Peliyagoda}
+      SEED_DRIVER_USERNAME: ${SEED_DRIVER_USERNAME:-DRV-001}
+      SEED_DRIVER_PASSWORD: ${SEED_DRIVER_PASSWORD:-DriverPass12}
+      SEED_DRIVER_VEHICLE: ${SEED_DRIVER_VEHICLE:-VEH036}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+    volumes: !override
+      - "./dataset/data/General Data:/app/reference-data:ro"
+      - "./dataset/data/Test Data:/app/demo-data:ro"
+
+  web:
+    ports: !override
+      - "80:80"
+      - "443:443"
+    build:
+      args:
+        VITE_API_BASE_URL: https://${PUBLIC_HOST:-techtrithalon.duckdns.org}
+        VITE_SEED_DISPATCHER_USERNAME: ${SEED_DISPATCHER_USERNAME:-DSP-001}
+        VITE_SEED_DISPATCHER_PASSWORD: ${SEED_DISPATCHER_PASSWORD:-Dispatcher12}
+        VITE_SEED_STORE_MANAGER_USERNAME: ${SEED_STORE_MANAGER_USERNAME:-STM-001}
+        VITE_SEED_STORE_MANAGER_PASSWORD: ${SEED_STORE_MANAGER_PASSWORD:-StoreManager12}
+        VITE_SEED_LOADER_USERNAME: ${SEED_LOADER_USERNAME:-LDR-001}
+        VITE_SEED_LOADER_PASSWORD: ${SEED_LOADER_PASSWORD:-LoaderPass12}
+        VITE_SEED_DRIVER_USERNAME: ${SEED_DRIVER_USERNAME:-DRV-001}
+        VITE_SEED_DRIVER_PASSWORD: ${SEED_DRIVER_PASSWORD:-DriverPass12}
+    volumes:
+      - ./infrastructure/compose/ec2-https.nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
