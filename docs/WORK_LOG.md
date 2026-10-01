@@ -424,27 +424,27 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 - Step 5 (published) shows a Loading issues panel with the two decisions and marks held trips.
 - Tests: `LoaderWorkflowIT` (5), `loader.test.tsx` (9), Playwright `loader.spec.ts`; the smoke script covers loader reads. Totals: API 140, web 93; lint, typecheck and build clean. Curl, SQL and a full Chromium journey on the synthetic stack (see `docs/LOADING_VERIFICATION.md`).
 
-## 2026-10-03 — Step 5: driver workflow (phone PWA) and device-aware layouts
+## 2026-10-03 — Change Vehicle dialog fixed and checked against the backend
 
-- Read the Figma Driver page (`52:330`) and built Home, Trip overview, Route, Stop details, Order delivery, Delivery confirmation (photo and signature), Report issue, Issue recorded, Stop completed, Trip completed and submitted, Deliveries (today and past), Delivery details and Profile. Departures (no map coordinates, per-order units, no notifications) are listed in `docs/DELIVERY_VERIFICATION.md`.
-- Backend `delivery` module: start (only after handover, plan version checked), arrive, outcome (delivered, partial or failed with reason chips and proof), depart, finish; deliveries, past trips and order detail; deterministic ETA using planning's formula. Migration `V20261003_2300` is additive. Order status moves through `in_transit` to the recorded outcome.
-- Proof files go to Cloudinary (owner decision, ADR 0001) through the API, which validates and re-encodes them. Without `CLOUDINARY_URL` uploads return 503 and deliveries record the recipient only.
-- Publication refuses a revision that moves orders off a trip the driver has started; an unchanged handed-over trip keeps its handover. Planning-run orders now include those on the road.
-- Device detection (`lib/device.ts`, `data-device` on `<html>`): driver phone design with a tab bar (centred on tablets), loader tablet/phone navigation, dispatcher icon rail on tablets and tab bar on phones.
-- Tests: `DeliveryWorkflowIT` (3), `driver.test.tsx` (13), `device.test.ts` (3), Playwright `driver.spec.ts`; totals API 143, web 110; lint, typecheck and build clean. Curl, SQL and Chromium journeys at 402 and 834 px on the synthetic stack.
+- The dialog used classes with no CSS (`modal-card`, `modal-header`, `modal-footer`), so it rendered unstyled over the page. It now uses the shared `Dialog` component with a radio list, tokens and no inline styles.
+- Options show each vehicle's recorded availability (unavailable ones are disabled and sorted last) instead of a hard-coded "Available". Slots read "Trip 1 / Trip 2" instead of invented "Morning / Afternoon".
+- Backend rejections (named rule, trace ID) now appear inside the dialog; before they were hidden behind it.
+- "Change" is disabled for a standby vehicle: it has no trip, and the old confirm button silently did nothing there.
+- Tests: `changeVehicle.test.tsx` (4) and `change-vehicle.spec.ts` (Playwright, isolated stack). The browser run showed a swap accepted and persisted through `POST /plans/{id}/trips/{id}/vehicle`, and a swap to an ambient truck for a chilled order rejected with `TEMPERATURE_COMPATIBILITY` while leaving the plan unchanged. Web: 97 tests, typecheck, lint and build clean.
 
-## 2026-10-03 — Step 6: driver offline mode (outbox, sync, PWA shell)
+## 2026-10-03 — Review Allocation cards, route detail panel and remaining dialogs
 
-- `packages/field-core` (now a workspace package): outbox, sync engine, UUIDv7 and the local projection behind storage and transport ports; web adapters are Dexie (IndexedDB, one database per driver) and the API.
-- Backend: `POST /api/v1/driver/sync` claims each client action id, applies it in device order through the delivery rules in its own transaction, and stores the result (APPLIED, DUPLICATE, CONFLICT, REJECTED, review flags, clock skew). Proof uploads are idempotent by client id. When the plan changed offline, the driver's record wins and is flagged. Migration `V20261004_0900` is additive; sync rows are kept for 90 days.
-- Every driver write goes through the outbox; screens show offline work at once and open from the saved copy without signal. Driver hooks use TanStack `networkMode: 'always'` (default mode pauses offline).
-- Figma Sync Status (offline and back online), the header pill (Offline · N, Syncing d/t, Review · N) and the offline banner. Service worker, manifest and icons in the newly approved `apps/web/public/`; the driver's last confirmed identity lets the app open offline.
-- Tests: `SyncIT` (3), field-core (10), offline web tests, Playwright `driver-offline.spec.ts`; totals API 146, web 123; lint, typecheck and build clean. Curl and SQL on the synthetic stack; service worker checked on a production build (see `docs/OFFLINE_SYNC_VERIFICATION.md`).
+- Vehicle cards are collapsible (header with ID, type and summary always visible; cards with a trip open by default, standby vehicles folded). Metrics are four readable tiles (value, limit, bar, note) instead of small monospace rows.
+- Actions follow what the vehicle can do: a trip has Review / Change / Remove; a standby vehicle has **Add trip**, which opens the trip dialog with that vehicle preselected. Without an open candidate the card says so instead of showing dead buttons.
+- Fixed van detection (it looked for "van" in the vehicle ID, so every van showed as a lorry and the Van tab read 0) and the invented brand fallback ("Perishable", "General").
+- The right side is now a route detail panel: trip time, distance, fuel and stops from the server, then a schematic sequence (depot, each stop with window, planned arrival, wait, dock, van-only and chilled tags, return to depot). It states that no map is drawn because the competition data has no coordinates. No coordinates were invented.
+- The Add Trip and Resolve Exceptions defer dialogs now use the shared `Dialog` (they had the same unstyled classes).
+- Tests: web 99 (new card, action, panel and dialog cases); browser: swap accepted, swap rejected with the named rule, and Add trip on a standby vehicle creating the trip through the API.
 
-## 2026-10-04 — Step 7: store receipt
+## 2026-10-03 — Interactive district map on the planning screens
 
-- Backend `receipt` module: the store lists its deliveries (phase, driver, vehicle, window, planned arrival), checks one against the driver's record and confirms it or reports a discrepancy, once per order. A dispute opens a discrepancy the dispatcher resolves (credit, replacement or no action); confirming or resolving moves the order to `receipt_confirmed`. Migration `V20261004_1200` is additive; load tasks and delivery records are read through new published services.
-- Store screens from Figma: Deliveries, Confirm receipt, Report an issue, Issues, with new nav entries. Dispatcher: a Receipt discrepancies panel on the Exceptions page (Step 8 builds the full queue). Departures (per-order units, no photos shown to the store) are in `docs/RECEIPT_VERIFICATION.md`.
-- Tests: `ReceiptIT` (3), `receipt.test.tsx` (6), Playwright `lifecycle.spec.ts` (plan → load → deliver → receipt across four roles with a dispute and resolution); totals API 149, web 129. One quiet curl script (40 checks, mismatches only) folded into `scripts/smoke.sh`.
-- Verification rules changed (owner decision): integration tests are the main proof, one quiet curl script per step, full suites once at the end, one screenshot per new screen; recorded in AGENTS.md and CLAUDE.md.
-
+- Added a Leaflet district map (`components/DistrictMap`) with public district boundaries, two town-level depot points, depot-to-district lines labelled with the competition's km and minutes, click-to-select districts, "Base map" toggle (with automatic fallback to shapes only), reset view and a legend. No outlet is ever drawn; no coordinates were invented. Approved by the owner: `leaflet` dependency, the geoBoundaries file (ODbL, attributed on the map), and an optional CARTO base layer.
+- Step 1 "Map" view: districts shaded by the server's order counts, labels carry the counts, and clicking a district (or its chip, for keyboard and phone use) filters the list through the existing server-side search. Removed invented outlet names and the `?? 'Colombo'` fallback.
+- Step 3: the right panel now has the map above the route detail. It shades districts by orders not yet on a trip, highlights the selected trip's district and link, and clicking a district selects a trip there.
+- New endpoints: `GET /api/v1/reference/geography` and `GET /api/v1/dispatcher/orders/districts`; the plan view gained `unassignedByDistrict`. Curl matched SQL (7 districts, 85 orders, volumes to 3 decimals) with 401/403/404/400 paths. `scripts/smoke.sh` covers both.
+- Tests: `GeographyIT` (3), `DistrictMap.test.tsx` (5), Playwright `district-map.spec.ts` on real demo data. Documented in `docs/GEOGRAPHY.md`.
