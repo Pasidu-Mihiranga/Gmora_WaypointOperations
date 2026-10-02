@@ -100,6 +100,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dispatcher/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatcher/exceptions/{type}/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["claim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatcher/exceptions/{type}/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resolve_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dispatcher/fleet": {
         parameters: {
             query?: never;
@@ -124,6 +172,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["vehicle_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatcher/live-operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["board_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1677,6 +1741,76 @@ export interface components {
              */
             version?: number | null;
         };
+        ExceptionCounts: {
+            /** Format: int32 */
+            all?: number;
+            /** Format: int32 */
+            inProgress?: number;
+            /** Format: int32 */
+            open?: number;
+            /** Format: int32 */
+            resolved?: number;
+        };
+        ExceptionItem: {
+            /** Format: date-time */
+            claimedAt?: string | null;
+            decision?: string | null;
+            /** @description Decisions the dispatcher may choose; empty means the item is closed by acknowledging it with a note */
+            decisions?: string[];
+            detail?: string;
+            driverName?: string | null;
+            /** @description TYPE:sourceId, unique in the queue */
+            id?: string;
+            /** @description LOADING_SHORTFALL, RECEIPT_DISPUTE, DELIVERY_PARTIAL, DELIVERY_FAILED, DELIVERY_REVIEW, SYNC_CONFLICT, SYNC_REJECTED, ROUTE_CHANGED_OFFLINE or STOP_NOT_ON_TRIP */
+            kind?: string;
+            orderRef?: string | null;
+            outletId?: string | null;
+            /** @description Dispatcher who took it */
+            ownerName?: string | null;
+            /** Format: date */
+            planDate?: string | null;
+            /** Format: date-time */
+            reportedAt?: string;
+            reportedByName?: string | null;
+            resolutionNote?: string | null;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            resolvedByName?: string | null;
+            sourceId?: string;
+            /** @description LOADING_ISSUE, RECEIPT_DISCREPANCY, DELIVERY_PROBLEM or SYNC_REVIEW */
+            sourceType?: string;
+            /** @description OPEN, IN_PROGRESS or RESOLVED */
+            status?: string;
+            title?: string;
+            /** Format: int32 */
+            tripIndex?: number | null;
+            vehicleId?: string | null;
+            /**
+             * Format: int32
+             * @description Send this as expectedVersion when resolving
+             */
+            version?: number;
+        };
+        ExceptionQueue: {
+            /**
+             * Format: date-time
+             * @description Server time of this snapshot
+             */
+            asOf?: string;
+            counts?: components["schemas"]["ExceptionCounts"];
+            /** Format: date */
+            date?: string;
+            depot?: string;
+            items?: components["schemas"]["ExceptionItem"][];
+        };
+        ExceptionResolveRequest: {
+            /** @description Required for loading shortfalls and store disputes */
+            decision?: string | null;
+            /** Format: int32 */
+            expectedVersion?: number;
+            /** @description What was decided and why */
+            note?: string;
+        };
         FleetVehicle: {
             availabilityNote?: string | null;
             availabilityRecorded?: boolean;
@@ -1707,22 +1841,91 @@ export interface components {
             remainingLitres?: number | null;
             vehicleId?: string;
         };
-        GeographyView: {
-            attribution: string;
-            depots: components["schemas"]["Depot"][];
-            districts: components["schemas"]["District"][];
-            links: components["schemas"]["Link"][];
+        LiveBoard: {
+            /**
+             * Format: date-time
+             * @description Server time of this snapshot; ages are measured against it
+             */
+            asOf?: string;
+            counts?: components["schemas"]["LiveCounts"];
+            /** Format: date */
+            date?: string;
+            depot?: string;
+            vehicles?: components["schemas"]["LiveVehicle"][];
         };
-        Link: {
-            depot: string;
-            depotToDistrictKm: number;
+        LiveCounts: {
             /** Format: int32 */
-            depotToDistrictMinutes: number;
-            district: string;
-            interStopKm: number;
+            completed?: number;
             /** Format: int32 */
-            interStopMinutes: number;
-            roadClass: string;
+            delayed?: number;
+            /** Format: int32 */
+            inTransit?: number;
+            /** Format: int32 */
+            loading?: number;
+            /** Format: int32 */
+            ready?: number;
+            /** Format: int32 */
+            total?: number;
+        };
+        LiveStopMark: {
+            /** @description Projected arrival is after the window closes */
+            late?: boolean;
+            outletId?: string;
+            /** Format: int32 */
+            seq?: number;
+            /** @description PENDING, ARRIVED or COMPLETED */
+            status?: string;
+        };
+        LiveVehicle: {
+            brand?: string;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** @description Projected arrival at the current stop (same projection as the driver's screen) */
+            currentEta?: string | null;
+            currentOutletId?: string | null;
+            /**
+             * Format: int32
+             * @description 1-based position of the stop being served or next
+             */
+            currentStopSeq?: number | null;
+            /** @description ARRIVED when the driver is at the stop, EN_ROUTE when heading there */
+            currentStopState?: string | null;
+            district?: string;
+            driverName?: string | null;
+            /**
+             * Format: int32
+             * @description Orders recorded as partial or failed
+             */
+            issues?: number;
+            /**
+             * Format: date-time
+             * @description Latest recorded activity on the trip
+             */
+            lastUpdateAt?: string;
+            /**
+             * Format: int64
+             * @description Whole minutes between the last activity and the snapshot, never negative
+             */
+            minutesAgo?: number;
+            /** Format: int32 */
+            orders?: number;
+            /** Format: int32 */
+            ordersDone?: number;
+            /** Format: int32 */
+            planVersion?: number;
+            plannedDepart?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** @description LOADING, READY, IN_TRANSIT, DELAYED or COMPLETED */
+            state?: string;
+            stopMarks?: components["schemas"]["LiveStopMark"][];
+            /** Format: int32 */
+            stops?: number;
+            /** Format: int32 */
+            stopsDone?: number;
+            /** Format: int32 */
+            tripIndex?: number;
+            vehicleId?: string;
         };
         LoadLine: {
             /** @description The count was carried over from the replaced manifest */
@@ -2856,6 +3059,85 @@ export interface operations {
             };
         };
     };
+    queue: {
+        parameters: {
+            query?: {
+                date?: string;
+                depot?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExceptionQueue"];
+                };
+            };
+        };
+    };
+    claim: {
+        parameters: {
+            query?: {
+                date?: string;
+                depot?: string;
+            };
+            header?: never;
+            path: {
+                type: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExceptionItem"];
+                };
+            };
+        };
+    };
+    resolve_2: {
+        parameters: {
+            query?: {
+                date?: string;
+                depot?: string;
+            };
+            header?: never;
+            path: {
+                type: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExceptionResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExceptionItem"];
+                };
+            };
+        };
+    };
     fleet: {
         parameters: {
             query?: {
@@ -2899,6 +3181,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FleetVehicle"];
+                };
+            };
+        };
+    };
+    board_1: {
+        parameters: {
+            query?: {
+                date?: string;
+                depot?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LiveBoard"];
                 };
             };
         };
