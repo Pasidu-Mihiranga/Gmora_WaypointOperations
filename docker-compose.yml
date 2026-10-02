@@ -67,6 +67,10 @@ services:
       REFERENCE_DATA_DIR: /app/reference-data
       DEMO_DATA_DIR: /app/demo-data
       DEMO_SEED_ON_STARTUP: ${DEMO_SEED_ON_STARTUP:-true}
+      FORECAST_DATA_DIR: /app/forecast-data
+      FORECAST_SEED_ON_STARTUP: ${FORECAST_SEED_ON_STARTUP:-true}
+      FORECAST_WINDOW_WEEKS: ${FORECAST_WINDOW_WEEKS:-13}
+      FORECAST_HORIZON_WEEKS: ${FORECAST_HORIZON_WEEKS:-10}
       EXPECTED_DEMO_ORDERS: ${EXPECTED_DEMO_ORDERS:-85}
       EXPECTED_DEMO_FLEET: ${EXPECTED_DEMO_FLEET:-38}
       TZ: ${APP_TIME_ZONE:-Asia/Colombo}
@@ -75,6 +79,7 @@ services:
     volumes:
       - "${REFERENCE_DATA_HOST_DIR:-./dataset/data/General Data}:/app/reference-data:ro"
       - "${DEMO_DATA_HOST_DIR:-./dataset/data/Test Data}:/app/demo-data:ro"
+      - "${FORECAST_DATA_HOST_DIR:-./dataset/data/Training Data}:/app/forecast-data:ro"
     depends_on:
       postgres:
         condition: service_healthy

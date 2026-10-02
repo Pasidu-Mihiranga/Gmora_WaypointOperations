@@ -88,6 +88,17 @@ app:
       calendar-days: ${EXPECTED_CALENDAR_DAYS:910}
       districts: ${EXPECTED_DISTRICTS:12}
       service-allowances: ${EXPECTED_SERVICE_ALLOWANCES:9}
+  forecast:
+    # Historical deliveries CSV (never committed). Compose mounts this read-only; a missing file
+    # leaves the demand forecast unavailable rather than guessed.
+    data-dir: ${FORECAST_DATA_DIR:../../dataset/data/Training Data}
+    seed-on-startup: ${FORECAST_SEED_ON_STARTUP:true}
+    # Completed weeks averaged per series. Chosen by rolling-origin comparison on the supplied
+    # history; a plain long average beat recency weighting and seasonal variants.
+    window-weeks: ${FORECAST_WINDOW_WEEKS:13}
+    horizon-weeks: ${FORECAST_HORIZON_WEEKS:10}
+    # Fewest completed weeks before a series publishes any value.
+    min-weeks: ${FORECAST_MIN_WEEKS:13}
   demo:
     # Explicit local walkthrough clock. Empty means real wall-clock; never backdate silently.
     clock-instant: ${DEMO_CLOCK_INSTANT:}
