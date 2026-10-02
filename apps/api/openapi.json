@@ -72,6 +72,25 @@
         },
         "type" : "object"
       },
+      "CapacityContext" : {
+        "properties" : {
+          "reeferVehicles" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "reeferVolumeCapM3" : {
+            "type" : "number"
+          },
+          "vehicles" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "volumeCapM3" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
       "ConstraintViolation" : {
         "properties" : {
           "actualValue" : {
@@ -408,6 +427,46 @@
           }
         },
         "required" : [ "deferredOrders", "depot", "items", "planDate", "protectedNextRun", "repeatSkips", "storesAcknowledged", "storesNotified" ],
+        "type" : "object"
+      },
+      "DemandForecast" : {
+        "properties" : {
+          "advisory" : {
+            "type" : "boolean"
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/CapacityContext"
+          },
+          "depot" : {
+            "type" : "string"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "method" : {
+            "type" : "string"
+          },
+          "methodVersion" : {
+            "type" : "string"
+          },
+          "series" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SeriesRow"
+            },
+            "type" : "array"
+          },
+          "weeks" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WeekRow"
+            },
+            "type" : "array"
+          },
+          "windowWeeks" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "Depot" : {
@@ -3616,6 +3675,33 @@
         },
         "type" : "object"
       },
+      "SeriesRow" : {
+        "properties" : {
+          "basis" : {
+            "type" : "string"
+          },
+          "brand" : {
+            "type" : "string"
+          },
+          "chilledApplicable" : {
+            "type" : "boolean"
+          },
+          "confidence" : {
+            "type" : "string"
+          },
+          "forecastChilledM3" : {
+            "type" : "number"
+          },
+          "forecastTotalM3" : {
+            "type" : "number"
+          },
+          "sampleWeeks" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "ServiceAllowance" : {
         "properties" : {
           "brand" : {
@@ -4097,6 +4183,50 @@
           }
         },
         "type" : "object"
+      },
+      "WeekRow" : {
+        "properties" : {
+          "forecastChilledM3" : {
+            "type" : "number"
+          },
+          "forecastChilledPerDayM3" : {
+            "type" : "number"
+          },
+          "forecastTotalM3" : {
+            "type" : "number"
+          },
+          "forecastTotalPerDayM3" : {
+            "type" : "number"
+          },
+          "highTotalM3" : {
+            "type" : "number"
+          },
+          "isoWeek" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "isoYear" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "lowTotalM3" : {
+            "type" : "number"
+          },
+          "observed" : {
+            "type" : "boolean"
+          },
+          "observedChilledM3" : {
+            "type" : "number"
+          },
+          "observedTotalM3" : {
+            "type" : "number"
+          },
+          "operatingDays" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -4555,6 +4685,43 @@
           "session" : [ ]
         } ],
         "tags" : [ "fleet-read-controller" ]
+      }
+    },
+    "/api/v1/dispatcher/forecast/demand" : {
+      "get" : {
+        "operationId" : "demand",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "depot",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "horizonWeeks",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DemandForecast"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "forecast-read-controller" ]
       }
     },
     "/api/v1/dispatcher/live-operations" : {

@@ -196,6 +196,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dispatcher/forecast/demand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["demand"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dispatcher/live-operations": {
         parameters: {
             query?: never;
@@ -1282,6 +1298,14 @@ export interface components {
             operating?: boolean;
             payday?: boolean;
         };
+        CapacityContext: {
+            /** Format: int32 */
+            reeferVehicles?: number;
+            reeferVolumeCapM3?: number;
+            /** Format: int32 */
+            vehicles?: number;
+            volumeCapM3?: number;
+        };
         ConstraintViolation: {
             actualValue?: string;
             allowedValue?: string;
@@ -1426,6 +1450,19 @@ export interface components {
             storesAcknowledged: number;
             /** Format: int32 */
             storesNotified: number;
+        };
+        DemandForecast: {
+            advisory?: boolean;
+            capacity?: components["schemas"]["CapacityContext"];
+            depot?: string;
+            /** Format: date-time */
+            generatedAt?: string;
+            method?: string;
+            methodVersion?: string;
+            series?: components["schemas"]["SeriesRow"][];
+            weeks?: components["schemas"]["WeekRow"][];
+            /** Format: int32 */
+            windowWeeks?: number;
         };
         Depot: {
             /** @description Why this point, and how approximate it is */
@@ -2767,6 +2804,16 @@ export interface components {
             /** Format: int32 */
             vehicles?: number;
         };
+        SeriesRow: {
+            basis?: string;
+            brand?: string;
+            chilledApplicable?: boolean;
+            confidence?: string;
+            forecastChilledM3?: number;
+            forecastTotalM3?: number;
+            /** Format: int32 */
+            sampleWeeks?: number;
+        };
         ServiceAllowance: {
             brand?: string;
             dockType?: string;
@@ -2961,6 +3008,23 @@ export interface components {
             /** Format: int32 */
             otherMinutesUsed?: number;
             weeklyFuelLimitL?: number;
+        };
+        WeekRow: {
+            forecastChilledM3?: number;
+            forecastChilledPerDayM3?: number;
+            forecastTotalM3?: number;
+            forecastTotalPerDayM3?: number;
+            highTotalM3?: number;
+            /** Format: int32 */
+            isoWeek?: number;
+            /** Format: int32 */
+            isoYear?: number;
+            lowTotalM3?: number;
+            observed?: boolean;
+            observedChilledM3?: number;
+            observedTotalM3?: number;
+            /** Format: int32 */
+            operatingDays?: number;
         };
     };
     responses: never;
@@ -3247,6 +3311,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FleetVehicle"];
+                };
+            };
+        };
+    };
+    demand: {
+        parameters: {
+            query?: {
+                depot?: string;
+                horizonWeeks?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DemandForecast"];
                 };
             };
         };
