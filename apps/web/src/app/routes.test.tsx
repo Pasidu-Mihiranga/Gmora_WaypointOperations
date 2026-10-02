@@ -56,12 +56,23 @@ describe('authenticated role shells', () => {
     expect(await screen.findByRole('link', { name: 'Fleet' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Orders' })).not.toHaveAttribute('aria-current')
   })
-  it('shows an honest empty state for screens that are not built yet', async () => {
-    signedIn()
+  it('shows an honest empty state when the server has no demand history to forecast from', async () => {
+    // The outlook is advisory: with no aggregated history the screen says so rather than guessing.
+    signedIn('DISPATCHER', async (url) => url.includes('/dispatcher/forecast/demand')
+      ? json({
+          depot: 'Peliyagoda', method: 'moving_average', methodVersion: '13w.1', windowWeeks: 13,
+          generatedAt: '2026-06-25T11:00:00Z', advisory: true,
+          capacity: { vehicles: 2, reeferVehicles: 1, volumeCapM3: 40, reeferVolumeCapM3: 20 },
+          weeks: [], series: [],
+        })
+      : new Promise<Response>(() => {}))
     renderAt('/dispatcher/forecast')
     expect(await screen.findByRole('heading', { name: 'Capacity forecast' })).toBeInTheDocument()
+    const panel = await screen.findByText('Weekly demand')
+    expect(panel).toBeInTheDocument()
     expect(within(screen.getByRole('main')).getAllByRole('status')[0]).toHaveTextContent('Not available yet')
-    expect(within(screen.getByRole('main')).getAllByRole('status')[0]).toHaveTextContent('Phases 17')
+    expect(within(screen.getByRole('main')).getAllByRole('status')[0])
+      .toHaveTextContent(/No demand history has been aggregated|Choose a depot/)
   })
   it('shows dashboard metrics returned by the API', async () => {
     signedIn('DISPATCHER', async (url) => {
