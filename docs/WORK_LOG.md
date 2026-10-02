@@ -443,8 +443,12 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ## 2026-10-03 — Interactive district map on the planning screens
 
-- Added a Leaflet district map (`components/DistrictMap`) with public district boundaries, two town-level depot points, depot-to-district lines labelled with the competition's km and minutes, click-to-select districts, "Base map" toggle (with automatic fallback to shapes only), reset view and a legend. No outlet is ever drawn; no coordinates were invented. Approved by the owner: `leaflet` dependency, the geoBoundaries file (ODbL, attributed on the map), and an optional CARTO base layer.
-- Step 1 "Map" view: districts shaded by the server's order counts, labels carry the counts, and clicking a district (or its chip, for keyboard and phone use) filters the list through the existing server-side search. Removed invented outlet names and the `?? 'Colombo'` fallback.
-- Step 3: the right panel now has the map above the route detail. It shades districts by orders not yet on a trip, highlights the selected trip's district and link, and clicking a district selects a trip there.
-- New endpoints: `GET /api/v1/reference/geography` and `GET /api/v1/dispatcher/orders/districts`; the plan view gained `unassignedByDistrict`. Curl matched SQL (7 districts, 85 orders, volumes to 3 decimals) with 401/403/404/400 paths. `scripts/smoke.sh` covers both.
-- Tests: `GeographyIT` (3), `DistrictMap.test.tsx` (5), Playwright `district-map.spec.ts` on real demo data. Documented in `docs/GEOGRAPHY.md`.
+## 2026-10-04 — Step 8: dispatcher exceptions queue and Live Operations
+
+- New `exceptions` module: a read model that joins loading shortfalls, store disputes, partial or failed deliveries and offline sync flags with the dispatcher's own state (`operational_exception`, additive migration). Loading and receipt items close through their owners; the rest are acknowledged with a note.
+- `LiveBoardService` (delivery module) gives each published trip a state, current stop, progress and last activity; the ETA projection moved into a shared `EtaProjector`, so the driver and dispatcher see the same arrival times. Dashboard tiles Active trips, Trips ready and Exceptions are real.
+- Web: Exceptions page (tabs, detail, take it, decide or acknowledge) and Live Operations page (vehicle list, stops, route-progress schematic), both polling every 15 s, plus a count badge on the Exceptions menu entry. The temporary receipt panel is no longer shown (`ReceiptDiscrepanciesPanel` is unused; removal needs the owner's approval).
+- Totals API 153, web 138. Tests: `ExceptionsIT` (2), `LiveOperationsIT` (2), `exceptions.test.tsx` (5), `liveOps.test.tsx` (4), Playwright `live-operations.spec.ts`; the lifecycle journey now resolves the dispute from the queue. One quiet curl script (65 checks, 0 mismatches) and read-only checks in `scripts/smoke.sh`.
+- Departures: schematic instead of a map; polling instead of SSE; no suggested fix yet (Steps 10–11).
+- Decision recorded: the dispatcher may undo a deferral while the plan is still a candidate (restore), and normal constraints are revalidated at publish. This already exists, so nothing new was built.
+
