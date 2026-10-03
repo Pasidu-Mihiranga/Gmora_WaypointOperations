@@ -5,7 +5,7 @@ import { clock, useStoreDelivery } from '../receipt/receiptQueries'
 import { Badge, Card, ErrorState, LoadingState, PageHeader, TypeBadge } from '../../components'
 import { formatVolume, formatWeight, relativeDay, relativeStamp, statusTone, storeStatusPill, tempKind, tempLabel } from './orderDisplay'
 import { StoreDeferralNotices } from './StoreDeferralNotices'
-import { useDispatcherOrder, useStoreCutoff, useStoreOrder } from './orderQueries'
+import { useDispatcherOrder, useOrderLines, useStoreCutoff, useStoreOrder } from './orderQueries'
 import './storeHome.css'
 
 export function DispatcherOrderDetailPage() {
@@ -22,6 +22,7 @@ export function StoreOrderDetailPage() {
   const order = useStoreOrder(id)
   const cutoff = useStoreCutoff()
   const data = order.data
+  const orderLines = useOrderLines(data ? id : undefined)
   const delivery = useStoreDelivery(data && DELIVERY_STATUSES.includes(data.status ?? '') ? id : undefined)
   const row = delivery.data?.row
   const pill = data ? storeStatusPill(data.status ?? '', row?.receipt) : null
@@ -45,6 +46,12 @@ export function StoreOrderDetailPage() {
       <p>Current status: <Badge tone={pill.tone}>{pill.label}</Badge></p>
       {row && (row.driverName || row.vehicleId) && <p>{[row.vehicleId, row.driverName ? `Driver ${row.driverName}` : null].filter(Boolean).join(' · ')}</p>}
       <p>Weight {formatWeight(data.weightKg ?? 0)}</p>
+      {orderLines.data && orderLines.data.length > 0 && <section aria-label="Items in this order">
+        <h3 className="store-detail-subtitle">Items</h3>
+        <ul className="store-detail-items">
+          {orderLines.data.map(line => <li key={line.productId}><span>{line.productName}</span><span className="store-quiet">{line.categoryName} · ×{line.quantity}</span></li>)}
+        </ul>
+      </section>}
       {delivery.data && delivery.data.timeline.length > 0 && <ol className="store-detail-timeline" aria-label="Order timeline">
         {delivery.data.timeline.map(event => <li key={event.label}><strong>{event.label}</strong> · {when(event.at)}</li>)}
       </ol>}

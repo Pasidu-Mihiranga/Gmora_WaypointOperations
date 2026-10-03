@@ -1,14 +1,19 @@
 package lk.techtrithalon.waypoint.ordering.api;
 
 import java.time.LocalDate;
+import java.util.List;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lk.techtrithalon.waypoint.identity.domain.CurrentUser;
 import lk.techtrithalon.waypoint.ordering.application.OrderCommandService;
 import lk.techtrithalon.waypoint.ordering.application.OrderQueryService;
+import lk.techtrithalon.waypoint.ordering.application.CatalogService;
+import lk.techtrithalon.waypoint.ordering.domain.Catalog;
 import lk.techtrithalon.waypoint.ordering.domain.CutoffInfo;
 import lk.techtrithalon.waypoint.ordering.domain.CustomerOrder;
 import lk.techtrithalon.waypoint.ordering.domain.OrderEstimate;
+import lk.techtrithalon.waypoint.ordering.domain.OrderLine;
+import lk.techtrithalon.waypoint.ordering.domain.OrderPreview;
 import lk.techtrithalon.waypoint.ordering.domain.OrderPage;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,15 +32,33 @@ import org.springframework.web.bind.annotation.RestController;
 class StoreOrderController {
     private final OrderQueryService queries;
     private final OrderCommandService commands;
+    private final CatalogService catalogs;
 
-    StoreOrderController(OrderQueryService queries, OrderCommandService commands) {
+    StoreOrderController(OrderQueryService queries, OrderCommandService commands, CatalogService catalogs) {
         this.queries = queries;
         this.commands = commands;
+        this.catalogs = catalogs;
     }
 
     @GetMapping("/cutoff")
     CutoffInfo cutoff(@AuthenticationPrincipal CurrentUser user) {
         return queries.cutoff(user);
+    }
+
+    @GetMapping("/catalog")
+    Catalog catalog(@AuthenticationPrincipal CurrentUser user, @RequestParam String temp) {
+        return catalogs.catalog(user, temp);
+    }
+
+    @PostMapping("/order-preview")
+    OrderPreview preview(@AuthenticationPrincipal CurrentUser user, @Valid @RequestBody PreviewOrderRequest request) {
+        return catalogs.preview(user, request.tempRequirement(),
+            request.lines().stream().map(line -> new CatalogService.LineRequest(line.productId(), line.quantity())).toList());
+    }
+
+    @GetMapping("/orders/{id}/lines")
+    List<OrderLine> lines(@AuthenticationPrincipal CurrentUser user, @PathVariable long id) {
+        return catalogs.lines(user, id);
     }
 
     @GetMapping("/order-estimate")
@@ -68,8 +91,10 @@ class StoreOrderController {
         @AuthenticationPrincipal CurrentUser user,
         @Valid @RequestBody PlaceOrderRequest request
     ) {
+        var lines = request.lines() == null ? null
+            : request.lines().stream().map(line -> new CatalogService.LineRequest(line.productId(), line.quantity())).toList();
         return commands.placeConfirmed(
-            user, request.tempRequirement(), request.units(), request.weightKg(), request.volumeM3(), request.expectedDeliveryDate()
+            user, request.tempRequirement(), request.units(), request.weightKg(), request.volumeM3(), request.expectedDeliveryDate(), lines
         );
     }
 }

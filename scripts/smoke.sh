@@ -280,6 +280,23 @@ assert all(e["kind"] and e["orderRef"] and e["at"] for e in events), "every noti
 assert [e["at"] for e in events] == sorted((e["at"] for e in events), reverse=True), "notifications must be newest first"
 ' || fail "store notifications are inconsistent: $notifications"
     [[ "$(curl -sS -o /dev/null -w '%{http_code}' "$API/api/v1/store/notifications")" == "401" ]] || fail "anonymous store notifications did not return 401"
+    catalog=$(curl -fsS -b "$cookies" "$API/api/v1/store/catalog?temp=ambient") || fail "store catalog failed"
+    echo "$catalog" | python3 -c '
+import json, sys
+c = json.load(sys.stdin)
+ids = {x["id"] for x in c["categories"]}
+assert c["categories"] and c["items"], "the catalog must list groups and items for the outlet brand"
+assert all(i["categoryId"] in ids for i in c["items"]), "every item must belong to a listed group"
+assert c["sized"] == all(i["weightKgPerUnit"] is not None for i in c["items"]), "item sizes must exist exactly when there is history"
+assert not any("price" in i for i in c["items"]), "the dataset has no prices, so the catalog must carry none"
+' || fail "store catalog is inconsistent: $catalog"
+    if [[ "$(echo "$catalog" | json_field "['sized']")" == "True" ]]; then
+      first_item=$(echo "$catalog" | json_field "['items'][0]['id']")
+      preview=$(curl -fsS -b "$cookies" -H 'Content-Type: application/json' -H 'X-Requested-With: Waypoint' \
+        -d "{\"tempRequirement\":\"ambient\",\"lines\":[{\"productId\":$first_item,\"quantity\":3}]}" "$API/api/v1/store/order-preview") || fail "store order preview failed"
+      [[ "$(echo "$preview" | json_field "['units']")" == "3" ]] || fail "order preview did not total the units: $preview"
+    fi
+    assert_failure 400 INVALID_TEMP -b "$cookies" "$API/api/v1/store/catalog?temp=frozen"
     assert_failure 400 INVALID_TEMP -b "$cookies" "$API/api/v1/store/order-estimate?temp=frozen&units=2"
     assert_failure 400 INVALID_UNITS -b "$cookies" "$API/api/v1/store/order-estimate?temp=ambient&units=0"
     assert_failure 403 FORBIDDEN -b "$cookies" "$API/api/v1/dispatcher/deferrals?date=$demo_date&depot=$depot"

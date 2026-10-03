@@ -3,6 +3,11 @@ import { api, apiReadError } from '../../lib/apiClient'
 import type { components } from '../../generated/api'
 import type { Present } from '../receipt/receiptQueries'
 
+export type Catalog = Present<components['schemas']['Catalog']>
+export type CatalogItem = Present<components['schemas']['CatalogItem']>
+export type OrderLine = Present<components['schemas']['OrderLine']>
+export type BasketLine = { productId: number; quantity: number }
+
 /** A store order as the API serialises it: every field present, null when absent. */
 export type StoreOrder = Present<components['schemas']['CustomerOrder']>
 
@@ -97,6 +102,48 @@ export function useStoreCutoff() {
     },
     retry: false,
     refetchInterval: 30_000,
+  })
+}
+
+/** The items this outlet can order for a temperature, sized from the dataset's average for the brand. */
+export function useCatalog(temp: string) {
+  return useQuery({
+    queryKey: ['store', 'catalog', temp],
+    retry: false,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/store/catalog', { params: { query: { temp } } })
+      if (error || !data) throw apiReadError(response, 'The catalog could not be loaded')
+      return data as Catalog
+    },
+  })
+}
+
+/** Totals for a basket, worked out by the same server code that sizes a submitted order. */
+export function useOrderPreview(temp: string, lines: BasketLine[]) {
+  return useQuery({
+    queryKey: ['store', 'order-preview', temp, lines],
+    enabled: lines.length > 0,
+    retry: false,
+    placeholderData: previous => previous,
+    queryFn: async () => {
+      const { data, error, response } = await api.POST('/api/v1/store/order-preview', { body: { tempRequirement: temp, lines } })
+      if (error || !data) throw apiReadError(response, 'The totals could not be worked out')
+      return data
+    },
+  })
+}
+
+/** The items saved with an order; empty for orders placed by units. */
+export function useOrderLines(orderId: number | undefined) {
+  return useQuery({
+    queryKey: ['store', 'order-lines', orderId],
+    enabled: orderId !== undefined && orderId > 0,
+    retry: false,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/store/orders/{id}/lines', { params: { path: { id: orderId! } } })
+      if (error || !data) throw apiReadError(response, 'The order items could not be loaded')
+      return data as OrderLine[]
+    },
   })
 }
 

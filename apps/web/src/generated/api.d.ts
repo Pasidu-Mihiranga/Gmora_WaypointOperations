@@ -1092,6 +1092,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/store/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/store/cutoff": {
         parameters: {
             query?: never;
@@ -1284,6 +1300,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/store/order-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/store/orders": {
         parameters: {
             query?: never;
@@ -1308,6 +1340,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store/orders/{id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lines"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1369,6 +1417,41 @@ export interface components {
             /** Format: int32 */
             vehicles?: number;
             volumeCapM3?: number;
+        };
+        Catalog: {
+            /** @description Whether this outlet may place orders of this temperature */
+            allowed?: boolean;
+            /**
+             * Format: int64
+             * @description How many past orders the sizes are based on
+             */
+            basisOrders?: number;
+            categories?: components["schemas"]["CatalogCategory"][];
+            /** @description Whether this outlet may place chilled orders at all */
+            chilledAllowed?: boolean;
+            /** Format: date */
+            deliveryDate?: string;
+            items?: components["schemas"]["CatalogItem"][];
+            /** @description False when there are no past orders to size the items from */
+            sized?: boolean;
+            tempRequirement?: string;
+            windowClose?: string;
+            windowOpen?: string;
+        };
+        CatalogCategory: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+        };
+        CatalogItem: {
+            /** Format: int64 */
+            categoryId?: number;
+            categoryName?: string;
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            volumeM3PerUnit?: number | null;
+            weightKgPerUnit?: number | null;
         };
         ConstraintViolation: {
             actualValue?: string;
@@ -1982,6 +2065,29 @@ export interface components {
             remainingLitres?: number | null;
             vehicleId?: string;
         };
+        GeographyView: {
+            attribution: string;
+            depots: components["schemas"]["Depot"][];
+            districts: components["schemas"]["District"][];
+            links: components["schemas"]["Link"][];
+        };
+        Line: {
+            /** Format: int64 */
+            productId: number;
+            /** Format: int32 */
+            quantity: number;
+        };
+        Link: {
+            depot: string;
+            depotToDistrictKm: number;
+            /** Format: int32 */
+            depotToDistrictMinutes: number;
+            district: string;
+            interStopKm: number;
+            /** Format: int32 */
+            interStopMinutes: number;
+            roadClass: string;
+        };
         LiveBoard: {
             /**
              * Format: date-time
@@ -2542,6 +2648,14 @@ export interface components {
             /** @description Carried forward with protect-on-next-run set */
             protectedThisRun: boolean;
         };
+        OrderLine: {
+            categoryName?: string;
+            /** Format: int64 */
+            productId?: number;
+            productName?: string;
+            /** Format: int32 */
+            quantity?: number;
+        };
         OrderPage: {
             items?: components["schemas"]["CustomerOrder"][];
             /** Format: int32 */
@@ -2550,6 +2664,14 @@ export interface components {
             size?: number;
             /** Format: int64 */
             total?: number;
+        };
+        OrderPreview: {
+            /** Format: int32 */
+            items?: number;
+            /** Format: int32 */
+            units?: number;
+            volumeM3?: number;
+            weightKg?: number;
         };
         Outlet: {
             brand?: string;
@@ -2568,11 +2690,18 @@ export interface components {
         PlaceOrderRequest: {
             /** Format: date */
             expectedDeliveryDate?: string;
+            /** @description Catalog items and quantities. When present the server sizes the order from them. */
+            lines?: components["schemas"]["Line"][];
             tempRequirement: string;
-            /** Format: int32 */
-            units: number;
-            volumeM3: number;
-            weightKg: number;
+            /**
+             * Format: int32
+             * @description Required unless lines are sent; with lines it is worked out from them
+             */
+            units?: number;
+            /** @description Required unless lines are sent */
+            volumeM3?: number;
+            /** @description Required unless lines are sent */
+            weightKg?: number;
         };
         Placement: {
             /** Format: int32 */
@@ -2718,6 +2847,10 @@ export interface components {
             takenAt?: string;
             /** Format: int64 */
             takenBy?: number;
+        };
+        PreviewOrderRequest: {
+            lines: components["schemas"]["Line"][];
+            tempRequirement: string;
         };
         PublishedTrip: {
             brand?: string;
@@ -4969,6 +5102,28 @@ export interface operations {
             };
         };
     };
+    catalog: {
+        parameters: {
+            query: {
+                temp: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Catalog"];
+                };
+            };
+        };
+    };
     cutoff: {
         parameters: {
             query?: never;
@@ -5235,6 +5390,30 @@ export interface operations {
             };
         };
     };
+    preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderPreview"];
+                };
+            };
+        };
+    };
     orders: {
         parameters: {
             query?: {
@@ -5305,6 +5484,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CustomerOrder"];
+                };
+            };
+        };
+    };
+    lines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderLine"][];
                 };
             };
         };

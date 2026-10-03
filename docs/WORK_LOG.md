@@ -4,6 +4,14 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Store manager catalog (synthetic) and order lines
+
+- Why: the Figma place-order flow is built on items and categories, but the dataset has none. All 92,307 historical orders carry only `order_units` ("items or cases"), weight and volume; the booklet only says what each brand sells. The owner approved a synthetic catalog without prices.
+- New migration `V20261004_2200__product_catalog.sql`: `product_category`, `product` and `order_line`. 30 synthetic items in 12 groups: Fresh chilled (Dairy & Chilled, Bakery, Beverages, Frozen) and dry (Pantry, Bakery, Beverages, Snacks) from the Figma frames, plus Style (hanging garments, cartons) and Tech (appliances, consumer electronics) from the booklet's brand descriptions. Items hold only a relative size; no prices and no dataset-derived numbers are committed.
+- Sizing is done on the server: per-unit weight and volume = the dataset's own average for the outlet's brand and temperature (from the imported orders) × the item's relative size. Totals therefore stay realistic, and planning, loading, delivery and receipt keep using the order totals unchanged.
+- New API: `GET /store/catalog`, `POST /store/order-preview` (same sizing code as submitting, so the screen shows exactly what is saved), `GET /store/orders/{id}/lines`; `POST /store/orders` accepts `lines` and then ignores any client weight or volume. Without history the store falls back to ordering by units.
+- Screens: Place Order now has category chips, search, item cards with Add and a stepper, a basket summary and a review table; order detail lists the items. Tests: `OrderCommandIT`, web tests, and the real `store-order` e2e.
+
 ## 2026-10-04 — Store manager rebuilt from Figma: Profile, Notifications and Deferral notice (slice 5)
 
 - New `GET /api/v1/store/notifications` (receipt module): order updates for the outlet built from stored events with their own times (order placed, deferred, dispatched, delivered, receipt confirmed, issue reported or resolved), newest first. No read state, so no unread dot. Covered by `ReceiptIT`, client regenerated, added to `scripts/smoke.sh`.

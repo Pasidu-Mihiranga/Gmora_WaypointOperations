@@ -91,6 +91,90 @@
         },
         "type" : "object"
       },
+      "Catalog" : {
+        "properties" : {
+          "allowed" : {
+            "description" : "Whether this outlet may place orders of this temperature",
+            "type" : "boolean"
+          },
+          "basisOrders" : {
+            "description" : "How many past orders the sizes are based on",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "categories" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CatalogCategory"
+            },
+            "type" : "array"
+          },
+          "chilledAllowed" : {
+            "description" : "Whether this outlet may place chilled orders at all",
+            "type" : "boolean"
+          },
+          "deliveryDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CatalogItem"
+            },
+            "type" : "array"
+          },
+          "sized" : {
+            "description" : "False when there are no past orders to size the items from",
+            "type" : "boolean"
+          },
+          "tempRequirement" : {
+            "type" : "string"
+          },
+          "windowClose" : {
+            "type" : "string"
+          },
+          "windowOpen" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CatalogCategory" : {
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CatalogItem" : {
+        "properties" : {
+          "categoryId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "categoryName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "volumeM3PerUnit" : {
+            "type" : [ "number", "null" ]
+          },
+          "weightKgPerUnit" : {
+            "type" : [ "number", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "ConstraintViolation" : {
         "properties" : {
           "actualValue" : {
@@ -1523,6 +1607,78 @@
         },
         "type" : "object"
       },
+      "GeographyView" : {
+        "properties" : {
+          "attribution" : {
+            "type" : "string"
+          },
+          "depots" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Depot"
+            },
+            "type" : "array"
+          },
+          "districts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/District"
+            },
+            "type" : "array"
+          },
+          "links" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Link"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "attribution", "depots", "districts", "links" ],
+        "type" : "object"
+      },
+      "Line" : {
+        "properties" : {
+          "productId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "quantity" : {
+            "format" : "int32",
+            "maximum" : 100000,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "productId", "quantity" ],
+        "type" : "object"
+      },
+      "Link" : {
+        "properties" : {
+          "depot" : {
+            "type" : "string"
+          },
+          "depotToDistrictKm" : {
+            "type" : "number"
+          },
+          "depotToDistrictMinutes" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "district" : {
+            "type" : "string"
+          },
+          "interStopKm" : {
+            "type" : "number"
+          },
+          "interStopMinutes" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "roadClass" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "depot", "depotToDistrictKm", "depotToDistrictMinutes", "district", "interStopKm", "interStopMinutes", "roadClass" ],
+        "type" : "object"
+      },
       "LiveBoard" : {
         "properties" : {
           "asOf" : {
@@ -2854,6 +3010,25 @@
         "required" : [ "carriedForward", "deferredPreviousOperatingDay", "evidenceSource", "orderId", "priorConsecutiveDeferrals", "protectedThisRun" ],
         "type" : "object"
       },
+      "OrderLine" : {
+        "properties" : {
+          "categoryName" : {
+            "type" : "string"
+          },
+          "productId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "productName" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "OrderPage" : {
         "properties" : {
           "items" : {
@@ -2873,6 +3048,25 @@
           "total" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "OrderPreview" : {
+        "properties" : {
+          "items" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "units" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "volumeM3" : {
+            "type" : "number"
+          },
+          "weightKg" : {
+            "type" : "number"
           }
         },
         "type" : "object"
@@ -2925,28 +3119,38 @@
             "format" : "date",
             "type" : "string"
           },
+          "lines" : {
+            "description" : "Catalog items and quantities. When present the server sizes the order from them.",
+            "items" : {
+              "$ref" : "#/components/schemas/Line"
+            },
+            "type" : "array"
+          },
           "tempRequirement" : {
             "minLength" : 1,
             "type" : "string"
           },
           "units" : {
+            "description" : "Required unless lines are sent; with lines it is worked out from them",
             "format" : "int32",
             "maximum" : 100000,
             "minimum" : 1,
             "type" : "integer"
           },
           "volumeM3" : {
+            "description" : "Required unless lines are sent",
             "maximum" : 9999999.999,
             "minimum" : 0.001,
             "type" : "number"
           },
           "weightKg" : {
+            "description" : "Required unless lines are sent",
             "maximum" : 9.999999999E7,
             "minimum" : 0.01,
             "type" : "number"
           }
         },
-        "required" : [ "tempRequirement", "units", "volumeM3", "weightKg" ],
+        "required" : [ "tempRequirement" ],
         "type" : "object"
       },
       "Placement" : {
@@ -3314,6 +3518,23 @@
           }
         },
         "required" : [ "id", "orderCount" ],
+        "type" : "object"
+      },
+      "PreviewOrderRequest" : {
+        "properties" : {
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Line"
+            },
+            "minItems" : 1,
+            "type" : "array"
+          },
+          "tempRequirement" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "lines", "tempRequirement" ],
         "type" : "object"
       },
       "PublishedTrip" : {
@@ -7269,6 +7490,35 @@
         "tags" : [ "reference-read-controller" ]
       }
     },
+    "/api/v1/store/catalog" : {
+      "get" : {
+        "operationId" : "catalog",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "temp",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Catalog"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "store-order-controller" ]
+      }
+    },
     "/api/v1/store/cutoff" : {
       "get" : {
         "operationId" : "cutoff",
@@ -7651,6 +7901,37 @@
         "tags" : [ "store-order-controller" ]
       }
     },
+    "/api/v1/store/order-preview" : {
+      "post" : {
+        "operationId" : "preview",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PreviewOrderRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrderPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "store-order-controller" ]
+      }
+    },
     "/api/v1/store/orders" : {
       "get" : {
         "operationId" : "orders",
@@ -7776,6 +8057,39 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/CustomerOrder"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "store-order-controller" ]
+      }
+    },
+    "/api/v1/store/orders/{id}/lines" : {
+      "get" : {
+        "operationId" : "lines",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OrderLine"
+                  },
+                  "type" : "array"
                 }
               }
             },

@@ -23,6 +23,7 @@ public class OrderCommandService {
     private final OrderRepository orders;
     private final ReferenceService reference;
     private final DeliveryDateService deliveryDates;
+    private final CatalogService catalog;
     private final AuditService audit;
     private final Clock clock;
 
@@ -30,12 +31,14 @@ public class OrderCommandService {
         OrderRepository orders,
         ReferenceService reference,
         DeliveryDateService deliveryDates,
+        CatalogService catalog,
         AuditService audit,
         Clock clock
     ) {
         this.orders = orders;
         this.reference = reference;
         this.deliveryDates = deliveryDates;
+        this.catalog = catalog;
         this.audit = audit;
         this.clock = clock;
     }
@@ -44,6 +47,19 @@ public class OrderCommandService {
     @PreAuthorize("hasRole('STORE_MANAGER')")
     public CustomerOrder placeConfirmed(
         CurrentUser user, String tempRequirement, int units, BigDecimal weightKg, BigDecimal volumeM3, LocalDate expectedDeliveryDate
+    ) {
+        return placeConfirmed(user, tempRequirement, units, weightKg, volumeM3, expectedDeliveryDate, null);
+    }
+
+    /**
+     * Places a confirmed order. With catalog lines the units, weight and volume are worked out from them on the server
+     * and any figures sent alongside are ignored; without lines the store supplies the totals itself.
+     */
+    @Transactional
+    @PreAuthorize("hasRole('STORE_MANAGER')")
+    public CustomerOrder placeConfirmed(
+        CurrentUser user, String tempRequirement, Integer unitsIn, BigDecimal weightKg, BigDecimal volumeM3, LocalDate expectedDeliveryDate,
+        java.util.List<CatalogService.LineRequest> lines
     ) {
         if (user.outletId() == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Resource not found");
@@ -54,11 +70,14 @@ public class OrderCommandService {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "CHILLED_FRESH_ONLY",
                 "Only Fresh outlets may place chilled orders");
         }
+        boolean fromLines = lines != null && !lines.isEmpty();
+        CatalogService.Sized sized = fromLines ? catalog.size(outlet, temp, lines) : null;
+        int units = fromLines ? sized.units() : unitsIn == null ? 0 : unitsIn;
         if (units < 1) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_UNITS", "Units must be at least 1");
         }
-        BigDecimal weight = requirePositive(weightKg, "weightKg", "INVALID_WEIGHT");
-        BigDecimal volume = requirePositive(volumeM3, "volumeM3", "INVALID_VOLUME").setScale(3, RoundingMode.HALF_UP);
+        BigDecimal weight = requirePositive(fromLines ? sized.weightKg() : weightKg, "weightKg", "INVALID_WEIGHT");
+        BigDecimal volume = requirePositive(fromLines ? sized.volumeM3() : volumeM3, "volumeM3", "INVALID_VOLUME").setScale(3, RoundingMode.HALF_UP);
         weight = weight.setScale(2, RoundingMode.HALF_UP);
 
         LocalDate orderDate = deliveryDates.deliveryDateNow();
@@ -83,6 +102,7 @@ public class OrderCommandService {
             outlet.outletId(), outlet.brand(), outlet.depot(), outlet.district(), orderDate, now,
             temp, units, weight, volume, day.isoYear(), day.isoWeek(), user.id()
         );
+        if (fromLines) catalog.saveLines(created.id(), sized.lines());
         audit.record("order.confirmed", user, "order", String.valueOf(created.id()), null, created, null);
         return created;
     }

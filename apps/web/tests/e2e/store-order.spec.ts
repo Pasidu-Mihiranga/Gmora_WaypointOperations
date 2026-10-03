@@ -17,13 +17,13 @@ test('store manager reviews and confirms an order or sees an existing-order conf
 
   for (const temp of ['ambient', 'chilled'] as const) {
     await page.getByRole('radio', { name: new RegExp(temp, 'i') }).check({ force: true })
-    await page.getByLabel('Units').fill('3')
-    // The server estimates weight and volume from past orders; wait for it before reviewing.
-    await expect(page.getByText(/Estimated from|no past orders to estimate from/i)).toBeVisible()
-    if (!(await page.getByLabel('Weight (kg)').inputValue())) {
-      await page.getByLabel('Weight (kg)').fill('22.5')
-      await page.getByLabel('Volume (m³)').fill('0.125')
-    }
+    // Build the basket from the catalog: add the first two items and one more of the first.
+    const items = page.getByRole('listitem').filter({ has: page.getByRole('button', { name: 'Add', exact: true }) })
+    await expect(items.first()).toBeVisible()
+    await items.nth(0).getByRole('button', { name: 'Add', exact: true }).click()
+    await items.nth(1).getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(page.getByLabel('Order summary').getByLabel('Basket').getByRole('listitem')).toHaveCount(2)
+    await expect(page.getByRole('button', { name: 'Continue to Review' })).toBeEnabled()   // the server has sized the basket
     await page.getByRole('button', { name: 'Continue to Review' }).click()
     await page.getByRole('button', { name: 'Submit Order' }).click()
 
