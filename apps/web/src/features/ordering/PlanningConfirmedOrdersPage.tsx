@@ -11,7 +11,6 @@ import {
   Map as MapIcon,
   RotateCcw,
   Search,
-  SlidersHorizontal,
   Snowflake,
   Sparkles,
   Table,
@@ -153,6 +152,8 @@ export function PlanningConfirmedOrdersPage() {
     sort: 'ref',
     asc: true,
   })
+  const visibleFairness = useOrderFairness(planDate, (ordersQuery.data?.items ?? [])
+    .map(order => order.id).filter((id): id is number => id != null))
 
   const deferFairness = useOrderFairness(planDate, deferIds)
   const queueSummary = usePlanningQueueSummary(planDate, activeDepot)
@@ -659,10 +660,6 @@ export function PlanningConfirmedOrdersPage() {
                 />
               </div>
               <div className="planning-toolbar-actions">
-                <button type="button" className="toolbar-btn">
-                  <SlidersHorizontal size={14} aria-hidden="true" />
-                  <span>Filters</span>
-                </button>
                 <div className="segmented-control" role="group" aria-label="View mode">
                   <button
                     type="button"
@@ -753,6 +750,7 @@ export function PlanningConfirmedOrdersPage() {
                 />
               ) : (
                 <>
+                  {visibleFairness.isError && <p role="alert" className="field-hint">Repeat-skip history could not be loaded. Refresh to check order flags.</p>}
                   <div className="planning-table-wrapper">
                     <table className="planning-table">
                       <thead>
@@ -811,11 +809,11 @@ export function PlanningConfirmedOrdersPage() {
                                 <div className="outlet-sub">
                                   {outlet?.windowOpen && outlet?.windowClose
                                     ? `${outlet.windowOpen}–${outlet.windowClose}`
-                                    : 'Standard window'}
+                                    : 'Window not recorded'}
                                 </div>
                               </td>
                               <td className="td-district">
-                                <span className="district-pill">{order.district ?? 'Colombo'}</span>
+                                <span className="district-pill">{order.district ?? 'District not recorded'}</span>
                               </td>
                               <td className="td-volume">
                                 <strong>{order.volumeM3?.toFixed(1) ?? '—'} m³</strong>
@@ -834,7 +832,7 @@ export function PlanningConfirmedOrdersPage() {
                                 )}
                               </td>
                               <td className="td-flags">
-                                {orderId % 4 === 1 && (
+                                {visibleFairness.data?.some(item => item.orderId === orderId && item.deferredPreviousOperatingDay) && (
                                   <span className="flag-badge">Skipped last run</span>
                                 )}
                               </td>

@@ -4,6 +4,15 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Independent dispatcher audit validation
+
+- Reviewed the committed dispatcher home, orders, five planning steps, fleet overview, exceptions and deferred-orders wiring on `audit/dispatcher-data-planning-ui`. The branch was clean before this check; no backend contract or planning rule was changed.
+- Fresh checks on the committed branch: `./gradlew test --rerun-tasks` passed against PostgreSQL Testcontainers, web `npm test` passed 156/156, and web typecheck, lint and production build passed. The build reported only Vite's existing bundle-size advisory. Rebuilt and started the existing local Compose API after finding it stopped; the browser journey was not rerun.
+- Found and corrected a remaining Step 1 data error: “Skipped last run” was fabricated from `orderId % 4`. The badge now uses `/api/v1/dispatcher/deferrals/fairness` for visible orders and reports when that evidence cannot be loaded. Missing district and outlet window now say they were not recorded; a Filters button with no handler was removed. The order-flow test covers true and false repeat-skip evidence and missing district. After the edit, the focused order-flow test passed (3/3), and typecheck and lint passed.
+- Live curl after rebuild: dispatcher login 200; fleet overview 200 with 38 rows and 38 total = 1 on route + 27 idle + 10 workshop + 0 unrecorded; unauthenticated fleet 401 `UNAUTHENTICATED` with response `traceId` matching `X-Request-Id`; dashboard, order summary, exceptions and deferrals each returned 200. Repeat-skip fairness returned 200 for a real confirmed order (ID 512), with its ID in the result. A read-only PostgreSQL query returned 38 vehicles, 28 available, 10 workshop and 0 missing availability for Peliyagoda on 2026-06-26, matching the fleet totals. Rebuilt the local web container to serve the Step 1 correction; both web root and API health then returned 200. The full endpoint failure matrix remains in the audit entry below.
+- Open verification limits: `scripts/smoke.sh` still stops at the current demo day's empty confirmed queue, as documented below. No fresh full visual comparison was run for every dispatcher screen. The planning page still has inline colour and spacing literals, which should be moved to design tokens in a focused visual cleanup.
+- Files touched: `apps/web/src/features/ordering/PlanningConfirmedOrdersPage.tsx`, `apps/web/src/features/ordering/orderFlows.test.tsx`, `docs/WORK_LOG.md`. Rationale: keep visible planning facts tied to server evidence and preserve an honest validation trail.
+
 ## 2026-10-04 — Dispatcher data and planning UI audit
 
 - Created local branch `audit/dispatcher-data-planning-ui` from `fix/change-vehicle-dialog` without committing or pushing.

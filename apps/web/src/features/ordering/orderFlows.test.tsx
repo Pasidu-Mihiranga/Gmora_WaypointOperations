@@ -48,11 +48,18 @@ describe('confirmed order flows', () => {
       if (url.pathname.endsWith('/summary')) return json({ demoOperatingDate: '2026-06-26' })
       if (url.pathname.endsWith('/depots')) return json(['Synthetic depot'])
       if (url.pathname.endsWith('/compare')) return json({ unchanged: false })
+      if (url.pathname.endsWith('/fairness')) return json([
+        { orderId: 901, deferredPreviousOperatingDay: false },
+        { orderId: 902, deferredPreviousOperatingDay: true },
+      ])
       if (request.method === 'POST') { postBody = await request.clone().json(); return json(snapshot, 201) }
-      return json({ items: [row], total: 1, page: 0, size: 50 })
+      return json({ items: [row, { ...row, id: 902, ref: 'SYN-902', district: null }], total: 2, page: 0, size: 50 })
     }))
     setup(<PlanningConfirmedOrdersPage />)
     await screen.findByText('SYN-901')
+    await screen.findByText('Skipped last run')
+    expect(screen.getAllByText('Skipped last run')).toHaveLength(1)
+    expect(screen.getAllByText('District not recorded')).toHaveLength(2)
     await userEvent.click(screen.getByRole('button', { name: 'Snapshot all confirmed' }))
     await screen.findByText('Inputs changed. Regenerate before planning.')
     expect(postBody).toEqual({ planDate: '2026-06-26', depot: 'Synthetic depot' })
