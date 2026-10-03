@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -193,9 +193,10 @@ describe('driver screens', () => {
     renderAt('/driver/trips/1/orders/901/confirm')
     expect(await screen.findByLabelText('Take proof photo')).toBeInTheDocument()
     const recipient = screen.getByLabelText('Recipient name')
-    await userEvent.type(recipient, 'S. Perera')
-    // Confirm the name landed before submitting, so the proof rule is what the form complains about.
-    await waitFor(() => expect(recipient).toHaveValue('S. Perera'))
+    // Set the name directly: this step is a precondition, not the behaviour under test, and typing
+    // can race the capabilities query re-render under full-suite load.
+    fireEvent.change(recipient, { target: { value: 'S. Perera' } })
+    expect(recipient).toHaveValue('S. Perera')
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Delivery' }))
     expect(screen.getByRole('alert')).toHaveTextContent('Add a photo or the recipient’s signature.')
   })
