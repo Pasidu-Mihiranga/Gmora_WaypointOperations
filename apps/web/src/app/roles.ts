@@ -38,11 +38,14 @@ export const roles: Record<RoleKey, RoleConfig> = {
   store: {
     key: 'store', label: 'Store manager', basePath: '/store',
     pages: [
-      { to: '/store', label: 'Home', icon: House, end: true, title: 'Home', description: 'Order cutoff and your recent orders.', phase: 'Phase 3A' },
-      { to: '/store/orders', label: 'My orders', icon: ClipboardList, end: true, title: 'My orders', description: 'Orders from your outlet and their status.', phase: 'Phase 3A' },
-      { to: '/store/orders/new', label: 'Place order', icon: PackagePlus, title: 'Place an order', description: 'Place and confirm an order before the 16:00 cutoff.', phase: 'Phase 4' },
+      { to: '/store', label: 'Home', icon: House, end: true, title: 'Home', description: 'Your outlet at a glance.', phase: 'Phase 3A' },
+      { to: '/store/orders/new', label: 'Place Order', icon: PackagePlus, title: 'Place an order', description: 'Place and confirm an order before the 16:00 cutoff.', phase: 'Phase 4' },
+      { to: '/store/orders', label: 'Orders', icon: ClipboardList, end: true, title: 'Orders', description: 'Orders from your outlet and their status.', phase: 'Phase 3A' },
       { to: '/store/deliveries', label: 'Deliveries', icon: Truck, activePattern: /^\/store\/deliveries\//, title: 'Deliveries', description: 'Orders on their way and what the driver delivered.', phase: 'Phase 15' },
       { to: '/store/issues', label: 'Issues', icon: TriangleAlert, title: 'Issues', description: 'Delivery issues you reported.', phase: 'Phase 15' },
+    ],
+    footerPages: [
+      { to: '/store/profile', label: 'Profile', icon: User, title: 'Profile', description: 'Your account and outlet.', phase: 'Phase 15' },
     ],
   },
   loader: {

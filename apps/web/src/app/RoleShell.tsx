@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, apiReadError } from '../lib/apiClient'
 import { useDeviceClass } from '../lib/device'
 import { DriverSync } from '../features/offline/DriverSync'
+import { StoreOutletChip, StoreUserChip } from '../features/ordering/StoreTopBar'
 import { useExceptionQueue } from '../features/planning/exceptionQueries'
 import { useReferenceSummary } from '../features/shell/useReferenceSummary'
 import type { RoleConfig } from './roles'
@@ -104,13 +105,14 @@ export function RoleShell({ role }: { role: RoleConfig }) {
                 </select>
                 <ChevronDown size={14} className="topbar-depot-chevron" aria-hidden="true" />
               </div>
-            ) : undefined
+            ) : role.key === 'store' ? <StoreOutletChip outletId={auth.user?.outletId} /> : undefined
           }
-          searchEnabled={role.key === 'dispatcher'}
-          onSearch={(query) => navigate(`/dispatcher/orders?q=${encodeURIComponent(query)}`)}
-          searchPlaceholder="Search orders, outlets…"
-          user={
-            <div className="auth-user">
+          searchEnabled={role.key === 'dispatcher' || role.key === 'store'}
+          onSearch={(query) => navigate(`${role.key === 'store' ? '/store/orders' : '/dispatcher/orders'}?q=${encodeURIComponent(query)}`)}
+          searchPlaceholder={role.key === 'store' ? 'Search orders…' : 'Search orders, outlets…'}
+          user={role.key === 'store'
+            ? <StoreUserChip name={auth.user?.displayName} outletId={auth.user?.outletId} pending={pending} onLogout={() => { void logout() }} />
+            : <div className="auth-user">
               <span>{auth.user?.displayName}</span>
               <Button variant="ghost" loading={pending} onClick={() => { void logout() }}>
                 Sign out

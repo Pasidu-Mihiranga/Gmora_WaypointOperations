@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Map;
 import lk.techtrithalon.waypoint.reference.infrastructure.ReferenceApiTestSupport;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,13 @@ class OrderCommandIT extends ReferenceApiTestSupport {
     void beforeCutoffOnThursday() {
         // 2026-06-25 10:00 Asia/Colombo — before 16:00, next operating day is Fri 26.
         clock.instant = Instant.parse("2026-06-25T04:30:00Z");
+        db.update("DELETE FROM audit_event WHERE type='order.confirmed'");
+        db.update("DELETE FROM customer_order WHERE ref LIKE 'ORD-%'");
+    }
+
+    /** The orders these tests place must not leak into the planning and receipt tests that share the database. */
+    @AfterEach
+    void removeOrdersPlacedByTheTest() {
         db.update("DELETE FROM audit_event WHERE type='order.confirmed'");
         db.update("DELETE FROM customer_order WHERE ref LIKE 'ORD-%'");
     }
@@ -179,6 +187,39 @@ class OrderCommandIT extends ReferenceApiTestSupport {
         @Override public ZoneId getZone() { return ZoneId.of("Asia/Colombo"); }
         @Override public Clock withZone(ZoneId zone) { return this; }
         @Override public Instant instant() { return instant; }
+    }
+
+    @Test
+    void estimateComesFromPastOrdersOfTheSameBrandAndTemperatureAndNothingIsInvented() throws Exception {
+        Cookie store = login("STM-001", "synthetic-store-password");
+        mvc.perform(post("/api/v1/store/orders").cookie(store).header("X-Requested-With", "Waypoint").contentType("application/json")
+            .content(mapper.writeValueAsString(Map.of("tempRequirement", "ambient", "units", 10, "weightKg", 75.5, "volumeM3", 0.42)))).andReturn();
+
+        var estimate = getJson(store, "/api/v1/store/order-estimate?temp=ambient&units=20");
+        double kgPerUnit = db.queryForObject("SELECT sum(weight_kg)/sum(units) FROM customer_order WHERE brand='Fresh' AND temp_requirement='ambient' AND units>0 AND status<>'cancelled'", Double.class);
+        double m3PerUnit = db.queryForObject("SELECT sum(volume_m3)/sum(units) FROM customer_order WHERE brand='Fresh' AND temp_requirement='ambient' AND units>0 AND status<>'cancelled'", Double.class);
+        long basis = db.queryForObject("SELECT count(*) FROM customer_order WHERE brand='Fresh' AND temp_requirement='ambient' AND units>0 AND status<>'cancelled'", Long.class);
+        assertThat(estimate.path("weightKg").asDouble()).isCloseTo(kgPerUnit * 20, org.assertj.core.data.Offset.offset(0.011));
+        assertThat(estimate.path("volumeM3").asDouble()).isCloseTo(m3PerUnit * 20, org.assertj.core.data.Offset.offset(0.0011));
+        assertThat(estimate.path("basisOrders").asLong()).isEqualTo(basis);
+        assertThat(estimate.path("allowed").asBoolean()).isTrue();
+        assertThat(estimate.path("chilledAllowed").asBoolean()).isTrue();          // OUT901 is a Fresh outlet
+        assertThat(estimate.path("deliveryDate").asText()).isEqualTo("2026-06-26");
+        assertThat(estimate.path("windowOpen").asText()).isNotBlank();
+        assertThat(getJson(store, "/api/v1/store/order-estimate?temp=ambient&units=40").path("weightKg").asDouble())
+            .isGreaterThan(estimate.path("weightKg").asDouble());                  // scales with the units entered
+
+        failure(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/store/order-estimate?temp=frozen&units=2").cookie(store)).andReturn(), 400, "INVALID_TEMP");
+        failure(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/store/order-estimate?temp=ambient&units=0").cookie(store)).andReturn(), 400, "INVALID_UNITS");
+        failure(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/store/order-estimate?temp=ambient&units=2")).andReturn(), 401, "UNAUTHENTICATED");
+        Cookie dispatcher = login("DSP-001", "synthetic-dispatcher-password");
+        failure(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/store/order-estimate?temp=ambient&units=2").cookie(dispatcher)).andReturn(), 403, "FORBIDDEN");
+    }
+
+    private com.fasterxml.jackson.databind.JsonNode getJson(Cookie cookie, String path) throws Exception {
+        var result = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path).cookie(cookie)).andReturn();
+        assertThat(result.getResponse().getStatus()).as(path).isEqualTo(200);
+        return mapper.readTree(result.getResponse().getContentAsString());
     }
 
     @TestConfiguration

@@ -13,18 +13,21 @@ test('store manager reviews and confirms an order or sees an existing-order conf
   await expect(page).toHaveURL(/\/store$/)
 
   await page.goto('/store/orders/new')
-  await expect(page.getByRole('heading', { name: 'Place an order' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Place Order' })).toBeVisible()
 
   for (const temp of ['ambient', 'chilled'] as const) {
-    await page.getByLabel('Temperature').selectOption(temp)
+    await page.getByRole('radio', { name: new RegExp(temp, 'i') }).check({ force: true })
     await page.getByLabel('Units').fill('3')
-    await page.getByLabel('Weight (kg)').fill('22.5')
-    await page.getByLabel('Volume (m³)').fill('0.125')
-    await page.getByRole('button', { name: 'Review order' }).click()
-    await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible()
-    await page.getByRole('button', { name: 'Confirm order' }).click()
+    // The server estimates weight and volume from past orders; wait for it before reviewing.
+    await expect(page.getByText(/Estimated from|no past orders to estimate from/i)).toBeVisible()
+    if (!(await page.getByLabel('Weight (kg)').inputValue())) {
+      await page.getByLabel('Weight (kg)').fill('22.5')
+      await page.getByLabel('Volume (m³)').fill('0.125')
+    }
+    await page.getByRole('button', { name: 'Continue to Review' }).click()
+    await page.getByRole('button', { name: 'Submit Order' }).click()
 
-    const confirmed = page.getByText('Order confirmed')
+    const confirmed = page.getByText(/order submitted/i)
     const duplicate = page.getByText(/already have an active order/i)
     await expect(confirmed.or(duplicate)).toBeVisible({ timeout: 15_000 })
     if (await confirmed.isVisible()) {
@@ -32,7 +35,7 @@ test('store manager reviews and confirms an order or sees an existing-order conf
       break
     }
     // Repeat runs may already hold this temperature; verify the conflict and try the other.
-    await expect(page.getByRole('heading', { name: 'Place an order' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Place Order' })).toBeVisible()
   }
 
   const me = await page.request.get(`${apiBase}/api/v1/auth/me`)

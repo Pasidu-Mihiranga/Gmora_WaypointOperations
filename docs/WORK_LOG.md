@@ -4,6 +4,36 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Store manager rebuilt from Figma: Profile, Notifications and Deferral notice (slice 5)
+
+- New `GET /api/v1/store/notifications` (receipt module): order updates for the outlet built from stored events with their own times (order placed, deferred, dispatched, delivered, receipt confirmed, issue reported or resolved), newest first. No read state, so no unread dot. Covered by `ReceiptIT`, client regenerated, added to `scripts/smoke.sh`.
+- Profile shows the account and outlet from the session and the API, a "Your outlet" summary, a Notifications link and Log out. Editing the phone number, help & support, and the "this month spend" figures are not built: they need new storage or price data.
+- Deferral notice follows Figma's layout (banner, what changed, plan your receiving staff, acknowledge). "Contact dispatcher" is not built because there is no message channel.
+- Fixed the active sidebar footer item (Profile and the dispatcher's Settings) having dark text on a dark background.
+
+## 2026-10-04 — Store manager rebuilt from Figma: Deliveries, Issues and Place Order (slices 3–4)
+
+- Deliveries cards now show relative days, a Planned → On the road → Delivered stepper and the blue Pending chip; Issues rows carry status icons and "x days ago" times, with Figma's "Report an Issue" button. Confirm Receipt and Report Issue already matched Figma and are unchanged.
+- Place Order follows Figma's two steps (details, then review and submit) with an order-summary panel, delivery window and a confirmation card that offers the separate dry order. No catalog exists, so the store enters units; the server estimates weight and volume.
+- **Logic added for approval:** `GET /api/v1/store/order-estimate` (ordering module) works out weight and volume from the outlet brand's past orders of that temperature (sum weight ÷ sum units), reports how many orders it is based on, and returns nothing when there is no history. The Fresh-only chilled rule now lives in one place (`OrderRules`) used by both the estimate and the place-order command. The manager can still edit the figures.
+- Not built (needs storage or data): the dispatcher note on review, item lists and prices.
+- Tests: `OrderCommandIT`, `ReceiptIT`, web tests for the new screens, and the real `store-order` e2e against the running stack.
+
+## 2026-10-04 — Store manager rebuilt from Figma: Orders and order detail (slice 2)
+
+- New `GET /api/v1/store/order-board` (receipt module): the outlet's orders with a status group per row, chip counts that ignore the search, a text filter and paging, all on the server. A delivered order with an open dispute counts as Issue. Covered by `ReceiptIT`; client regenerated; added to `scripts/smoke.sh`.
+- Orders screen now has Figma's status chips with counts, a search field (also fed by the top-bar search) and the order table; filters and page live in the URL. Home's recent orders use the same endpoint.
+- Order detail follows Figma's summary card: placed time, delivery day and window, status chip, vehicle and driver, the delivery timeline, and a link to the delivery.
+- Not shown on purpose (no data): item lists, prices and totals.
+
+## 2026-10-04 — Store manager rebuilt from Figma: Home and shell (slice 1)
+
+- Owner decisions: keep one line per order with no catalog, prices or "this month spend"; notifications and profile are read-only from existing data. Figma's catalog grid, Rs amounts and "± 10 min" ETA have no data behind them, so they are not shown.
+- New `GET /api/v1/store/home` (receipt module): server-side counts for open orders, pending deliveries, open issues and completed orders, plus the next delivery and latest open issue. Covered by `ReceiptIT`, the contract/client regenerated, and added to `scripts/smoke.sh`.
+- Home screen, top bar (outlet chip, user chip) and sidebar order now follow the Figma frame. Added the Figma KPI/L text style to the design tokens (28px, weight 800).
+- Files: `receipt/*` (API), `features/ordering/StoreHomePage.tsx`, `StoreTopBar.tsx`, `storeHome.css`, `orderDisplay.ts`, `app/roles.ts`, `RoleShell.tsx`, `components/shell.css`, `packages/design-tokens`.
+- Next slices: Orders list and detail, Place Order flow, Deliveries and receipt, Issues, Profile and notifications, Deferral notice.
+
 ## 2026-10-04 — Capacity decision page made clear
 
 - Rebuilt the Capacity decision screen in the structure of the Figma frame (`372:8035`): a short "how to use this page" banner, label/value rows for the forecast snapshot and the review checklist, and a plain "not available yet" action note. The old four-column grid wrapped values awkwardly ("187 m³ (Daily figure unavailable until…)").

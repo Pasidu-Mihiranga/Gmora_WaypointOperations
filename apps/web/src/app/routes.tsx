@@ -16,6 +16,8 @@ import { PlanningConfirmedOrdersPage } from '../features/ordering/PlanningConfir
 import { DispatcherOrderDetailPage, StoreOrderDetailPage } from '../features/ordering/OrderDetailPage'
 import { PlaceOrderPage } from '../features/ordering/PlaceOrderPage'
 import { StoreHomePage } from '../features/ordering/StoreHomePage'
+import { StoreNotificationsPage } from '../features/ordering/StoreNotificationsPage'
+import { StoreProfilePage } from '../features/ordering/StoreProfilePage'
 import { StoreOrdersPage } from '../features/ordering/StoreOrdersPage'
 import { FleetDetailPage } from '../features/fleet/FleetDetailPage'
 import { FleetPage } from '../features/fleet/FleetPage'
@@ -54,6 +56,7 @@ function pageElement(role: RoleConfig, page: RolePage) {
   if (role.key === 'store' && page.to === '/store/orders/new') return <PlaceOrderPage />
   if (role.key === 'store' && page.to === '/store/deliveries') return <StoreDeliveriesPage />
   if (role.key === 'store' && page.to === '/store/issues') return <StoreIssuesPage />
+  if (role.key === 'store' && page.to === '/store/profile') return <StoreProfilePage />
   if (role.key === 'loader' && page.end) return <LoaderHomePage />
   if (role.key === 'loader' && page.to === '/loader/issues') return <LoaderIssuesPage />
   if (role.key === 'loader' && page.to === '/loader/profile') return <LoaderProfilePage />
@@ -95,6 +98,7 @@ function roleRoutes(role: RoleConfig) {
       {role.key === 'store' ? (
         <>
           <Route path="orders/:id" element={<StoreOrderDetailPage />} />
+          <Route path="notifications" element={<StoreNotificationsPage />} />
           <Route path="deliveries/:orderId" element={<ConfirmReceiptPage />} />
           <Route path="deliveries/:orderId/issue" element={<ReportIssuePage />} />
         </>

@@ -88,9 +88,9 @@ describe('deferral decisions and history', () => {
     })
     vi.stubGlobal('fetch', fetchSpy)
     setup(<StoreDeferralNotices />)
-    expect(await screen.findByText(/moves to the 2026-06-27 planning run/)).toBeVisible()
+    expect(await screen.findByText(/moves to the Sat 27 Jun planning run/)).toBeVisible()
     expect(screen.getByText(/confirmed only after that run is planned/)).toBeVisible()
-    await userEvent.click(screen.getByRole('button', { name: 'Acknowledge' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Acknowledge notice' }))
     await waitFor(() => expect(screen.getByText('Acknowledged.')).toBeVisible())
     const post = fetchSpy.mock.calls.map(([req]) => req).find(req => req.method === 'POST')!
     expect(new URL(post.url).pathname).toBe('/api/v1/store/deferrals/7/acknowledge')

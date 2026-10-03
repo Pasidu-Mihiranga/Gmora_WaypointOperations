@@ -2765,6 +2765,48 @@
         },
         "type" : "object"
       },
+      "OrderEstimate" : {
+        "properties" : {
+          "allowed" : {
+            "description" : "Whether this outlet may place orders of this temperature",
+            "type" : "boolean"
+          },
+          "basisOrders" : {
+            "description" : "How many past orders the estimate is based on",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "chilledAllowed" : {
+            "description" : "Whether this outlet may place chilled orders at all",
+            "type" : "boolean"
+          },
+          "deliveryDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "tempRequirement" : {
+            "type" : "string"
+          },
+          "units" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "volumeM3" : {
+            "type" : [ "number", "null" ]
+          },
+          "weightKg" : {
+            "description" : "Null when there are no past orders to estimate from",
+            "type" : [ "number", "null" ]
+          },
+          "windowClose" : {
+            "type" : "string"
+          },
+          "windowOpen" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "OrderFairness" : {
         "properties" : {
           "carriedForward" : {
@@ -3750,6 +3792,199 @@
           },
           "serviceStart" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "StoreHome" : {
+        "description" : "The store manager's home summary. Every count is computed on the server for the signed-in outlet.",
+        "properties" : {
+          "brand" : {
+            "type" : "string"
+          },
+          "completedOrders" : {
+            "description" : "Orders delivered in full or part, or already received",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "depot" : {
+            "type" : "string"
+          },
+          "district" : {
+            "type" : "string"
+          },
+          "latestOpenIssue" : {
+            "$ref" : "#/components/schemas/ReceiptDiscrepancy",
+            "description" : "The most recently reported open issue",
+            "type" : "null"
+          },
+          "nextDelivery" : {
+            "$ref" : "#/components/schemas/ReceiptDeliveryRow",
+            "description" : "The earliest delivery still to arrive",
+            "type" : "null"
+          },
+          "openIssues" : {
+            "description" : "Reported issues the dispatcher has not resolved",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "openOrders" : {
+            "description" : "Orders confirmed, planned, loaded, in transit or deferred",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "outletId" : {
+            "type" : "string"
+          },
+          "pendingDeliveries" : {
+            "description" : "Deliveries still planned, loading or on the road",
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "StoreNotification" : {
+        "description" : "One thing that happened to the outlet's orders, newest first. Built from stored events; there is no read state.",
+        "properties" : {
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "date" : {
+            "description" : "The delivery or planning day the event is about, when there is one",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "description" : "ORDER_SUBMITTED, ORDER_DEFERRED, ORDER_DISPATCHED, ORDER_DELIVERED, RECEIPT_CONFIRMED, ISSUE_REPORTED or ISSUE_RESOLVED",
+            "type" : "string"
+          },
+          "orderId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "orderRef" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "StoreOrderBoard" : {
+        "properties" : {
+          "counts" : {
+            "$ref" : "#/components/schemas/StoreOrderCounts"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StoreOrderRow"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "StoreOrderCounts" : {
+        "description" : "How many of the outlet's orders sit in each chip. Independent of the search and the selected chip.",
+        "properties" : {
+          "all" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "deferred" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "delivered" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inDelivery" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "issue" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "planned" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "submitted" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "StoreOrderRow" : {
+        "description" : "One order on the store manager's Orders screen, with the group its chip belongs to.",
+        "properties" : {
+          "deliveryDate" : {
+            "description" : "The planned delivery day once known, else the planning run the order sits in",
+            "format" : "date",
+            "type" : "string"
+          },
+          "group" : {
+            "description" : "SUBMITTED, PLANNED, IN_DELIVERY, DELIVERED, ISSUE, DEFERRED or CANCELLED",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "orderDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "placedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "plannedArrival" : {
+            "type" : [ "string", "null" ]
+          },
+          "planningDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "ref" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "tempRequirement" : {
+            "type" : "string"
+          },
+          "units" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "volumeM3" : {
+            "type" : "number"
+          },
+          "weightKg" : {
+            "type" : "number"
+          },
+          "windowClose" : {
+            "type" : [ "string", "null" ]
+          },
+          "windowOpen" : {
+            "type" : [ "string", "null" ]
           }
         },
         "type" : "object"
@@ -5975,7 +6210,7 @@
     },
     "/api/v1/driver/home" : {
       "get" : {
-        "operationId" : "home",
+        "operationId" : "home_1",
         "parameters" : [ {
           "in" : "query",
           "name" : "date",
@@ -7238,6 +7473,27 @@
         "tags" : [ "store-receipt-controller" ]
       }
     },
+    "/api/v1/store/home" : {
+      "get" : {
+        "operationId" : "home",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StoreHome"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "store-receipt-controller" ]
+      }
+    },
     "/api/v1/store/issues" : {
       "get" : {
         "operationId" : "issues",
@@ -7268,6 +7524,131 @@
           "session" : [ ]
         } ],
         "tags" : [ "store-receipt-controller" ]
+      }
+    },
+    "/api/v1/store/notifications" : {
+      "get" : {
+        "operationId" : "notifications",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 30,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/StoreNotification"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "store-receipt-controller" ]
+      }
+    },
+    "/api/v1/store/order-board" : {
+      "get" : {
+        "operationId" : "orderBoard",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "group",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StoreOrderBoard"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "store-receipt-controller" ]
+      }
+    },
+    "/api/v1/store/order-estimate" : {
+      "get" : {
+        "operationId" : "estimate",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "temp",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "units",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrderEstimate"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ {
+          "session" : [ ]
+        } ],
+        "tags" : [ "store-order-controller" ]
       }
     },
     "/api/v1/store/orders" : {

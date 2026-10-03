@@ -70,6 +70,11 @@
   --font-heading-l-weight: 700;
   --font-heading-l-line-height: 30px;
   --font-heading-l-letter-spacing: -0.01em;
+  --font-kpi-l-family: var(--font-family-display);
+  --font-kpi-l-size: 28px;
+  --font-kpi-l-weight: 800;
+  --font-kpi-l-line-height: 34px;
+  --font-kpi-l-letter-spacing: -0.02em;
   --font-kpi-m-family: var(--font-family-display);
   --font-kpi-m-size: 20px;
   --font-kpi-m-weight: 700;
@@ -185,6 +190,13 @@
   font-weight: var(--font-heading-l-weight);
   line-height: var(--font-heading-l-line-height);
   letter-spacing: var(--font-heading-l-letter-spacing);
+}
+.text-kpi-l {
+  font-family: var(--font-kpi-l-family);
+  font-size: var(--font-kpi-l-size);
+  font-weight: var(--font-kpi-l-weight);
+  line-height: var(--font-kpi-l-line-height);
+  letter-spacing: var(--font-kpi-l-letter-spacing);
 }
 .text-kpi-m {
   font-family: var(--font-kpi-m-family);

@@ -1,0 +1,111 @@
+/* Store manager Home, following the Figma "SM · Home" frame. */
+.store-place-button { gap: var(--space-8); text-decoration: none; }
+.store-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-16); margin-bottom: var(--space-20); }
+.store-kpi { display: flex; flex-direction: column; gap: var(--space-6); border-radius: var(--radius-lg); }
+.store-kpi-value { font-family: var(--font-kpi-l-family); font-size: var(--font-kpi-l-size); font-weight: var(--font-kpi-l-weight); line-height: var(--font-kpi-l-line-height); letter-spacing: var(--font-kpi-l-letter-spacing); }
+.store-kpi-label { font-size: var(--font-body-s-size); font-weight: var(--font-body-s-medium-weight); color: var(--color-text-secondary); }
+
+.store-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: var(--space-20); align-items: start; }
+.store-stack { display: flex; flex-direction: column; gap: var(--space-16); }
+.store-recent { padding: 0; overflow: hidden; border-radius: var(--radius-lg); }
+.store-card-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.store-card-row h2 { margin: 0; }
+.store-recent-head { padding: var(--space-16) var(--space-20) var(--space-12); }
+.store-order-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); padding: var(--space-12) var(--space-20); border-top: 1px solid var(--color-border-default); }
+.store-order-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); margin: 0; font-size: var(--font-caption-size); color: var(--color-text-secondary); }
+.store-ref { font-family: var(--font-mono-s-family); font-weight: var(--font-caption-medium-weight); color: var(--color-text-brand); text-decoration: none; }
+.store-quiet { margin: var(--space-2) 0 0; font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
+.store-strong { margin: 0; font-size: var(--font-body-s-size); font-weight: var(--font-body-s-strong-weight); }
+
+.store-arrival,
+.store-next { display: flex; flex-direction: column; gap: var(--space-10); border-radius: var(--radius-lg); }
+.store-arrival-time { margin: 0; font-family: var(--font-kpi-l-family); font-size: var(--font-kpi-l-size); font-weight: var(--font-kpi-l-weight); line-height: var(--font-kpi-l-line-height); letter-spacing: var(--font-kpi-l-letter-spacing); }
+.store-arrival .store-quiet,
+.store-next .store-quiet { margin: 0; }
+.store-issue { display: flex; flex-direction: column; gap: var(--space-10); border-radius: var(--radius-lg); background: var(--color-status-danger-soft); border-color: var(--color-status-danger); }
+.store-issue-label { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-size: var(--font-overline-size); font-weight: var(--font-body-s-strong-weight); letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-status-danger); }
+.store-issue-link { font-size: var(--font-body-s-size); font-weight: var(--font-body-s-medium-weight); color: var(--color-status-danger); }
+
+@media (max-width: 1200px) { .store-body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 900px) { .store-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Orders: status chips and search, following Figma "SM · Orders". */
+.store-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-bottom: var(--space-16); }
+.store-chip { padding: var(--space-6) var(--space-12); border: 1px solid var(--color-border-default); border-radius: var(--radius-full); background: var(--color-bg-surface); font: inherit; font-size: var(--font-body-s-size); font-weight: var(--font-body-s-medium-weight); color: var(--color-text-secondary); cursor: pointer; }
+.store-chip[aria-pressed='true'] { background: var(--color-brand-primary); border-color: var(--color-brand-primary); color: var(--color-text-on-brand); }
+.store-search { display: flex; align-items: center; gap: var(--space-10); margin-bottom: var(--space-16); padding: 0 var(--space-12); height: 40px; border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-text-tertiary); }
+.store-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-size: var(--font-body-m-size); color: var(--color-text-primary); }
+
+/* Order detail summary card, following Figma "SM · Order". */
+.store-detail { display: flex; flex-direction: column; gap: var(--space-12); border-radius: var(--radius-lg); padding: var(--space-20) var(--space-24); }
+.store-detail p { margin: 0; color: var(--color-text-secondary); }
+.store-detail-title { margin: 0; font-size: var(--font-heading-l-size); font-family: var(--font-heading-l-family); }
+.store-detail-timeline { margin: var(--space-4) 0; padding-left: var(--space-20); color: var(--color-text-secondary); display: grid; gap: var(--space-4); }
+.store-detail-actions { display: flex; flex-wrap: wrap; gap: var(--space-12); margin-top: var(--space-8); }
+.store-detail-actions a { text-decoration: none; }
+
+/* Place Order, following Figma "SM · Place Order": steps, form and an order summary beside it. */
+.store-steps { display: flex; gap: var(--space-12); margin: 0 0 var(--space-20); padding: 0; list-style: none; }
+.store-step { display: inline-flex; align-items: center; gap: var(--space-8); padding: var(--space-6) var(--space-12); border-radius: var(--radius-full); background: var(--color-bg-muted); font-size: var(--font-body-s-size); font-weight: var(--font-body-s-medium-weight); color: var(--color-text-secondary); }
+.store-step-active { background: var(--color-brand-primary-soft); border: 1px solid var(--color-brand-primary-border); color: var(--color-text-brand); }
+.store-step-dot { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: var(--radius-full); background: var(--color-bg-surface); font-size: var(--font-caption-size); }
+.store-step-active .store-step-dot { background: var(--color-brand-primary); color: var(--color-text-on-brand); }
+.store-step-done .store-step-dot { background: var(--color-status-success); color: var(--color-bg-surface); }
+.store-place { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: var(--space-20); align-items: start; }
+.store-place-main { display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
+.store-place .card h2 { margin: 0 0 var(--space-12); }
+.store-temp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); margin-bottom: var(--space-8); }
+.store-temp-option { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); cursor: pointer; }
+.store-temp-option input { position: absolute; opacity: 0; pointer-events: none; }
+.store-temp-option span { font-size: var(--font-caption-size); color: var(--color-text-secondary); }
+.store-temp-on { border-color: var(--color-brand-primary); background: var(--color-brand-primary-soft); }
+.store-temp-off { opacity: 0.55; cursor: not-allowed; }
+.store-temp-option:focus-within { box-shadow: var(--shadow-focus-ring); }
+.store-place-field { max-width: 20rem; margin-top: var(--space-12); }
+.store-estimate-basis { margin: var(--space-8) 0; padding: var(--space-8) var(--space-12); border-radius: var(--radius-sm); background: var(--color-bg-subtle); font-size: var(--font-caption-size); color: var(--color-text-secondary); }
+.store-adjust { margin-top: var(--space-8); font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
+.store-adjust summary { cursor: pointer; color: var(--color-text-brand); }
+.store-adjust-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); margin-top: var(--space-12); }
+.store-summary { display: flex; flex-direction: column; gap: var(--space-12); border-radius: var(--radius-lg); }
+.store-summary .btn { width: 100%; justify-content: center; gap: var(--space-8); }
+.store-review-facts { display: grid; gap: var(--space-8); margin: 0; font-size: var(--font-body-s-size); }
+.store-review-facts div { display: flex; justify-content: space-between; gap: var(--space-12); }
+.store-review-facts dt { color: var(--color-text-secondary); }
+.store-review-facts dd { margin: 0; font-weight: var(--font-body-s-strong-weight); text-align: right; }
+.store-review-table { width: 100%; border-collapse: collapse; font-size: var(--font-body-s-size); }
+.store-review-table th { text-align: left; padding: var(--space-8) var(--space-12); background: var(--color-bg-subtle); font-size: var(--font-caption-size); letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-secondary); }
+.store-review-table td { padding: var(--space-12); border-top: 1px solid var(--color-border-default); }
+.store-done { display: flex; justify-content: center; padding-top: var(--space-32); }
+.store-done-card { display: flex; flex-direction: column; align-items: center; gap: var(--space-8); text-align: center; max-width: 30rem; width: 100%; border-radius: var(--radius-lg); padding: var(--space-24); }
+.store-done-card p { margin: 0; }
+.store-done-icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--color-type-fridge-soft); color: var(--color-status-success); }
+.store-done-title { margin: var(--space-8) 0 0; font-family: var(--font-heading-l-family); font-size: var(--font-heading-l-size); }
+@media (max-width: 1000px) { .store-place { grid-template-columns: minmax(0, 1fr); } }
+
+/* Profile and notifications, following Figma "SM · Profile" and "SM · Notifications". */
+.store-profile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: var(--space-20); align-items: start; }
+.store-profile-main { display: flex; flex-direction: column; gap: var(--space-16); }
+.store-profile .card h2 { margin: 0 0 var(--space-8); }
+.store-profile-head { display: flex; align-items: center; gap: var(--space-20); border-radius: var(--radius-lg); }
+.store-profile-head .store-quiet { margin: 0; }
+.store-profile-avatar { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--color-bg-sidebar); color: var(--color-text-on-dark); font-family: var(--font-heading-l-family); font-size: var(--font-heading-l-size); }
+.store-profile-facts div { padding: var(--space-10) 0; border-top: 1px solid var(--color-border-default); }
+.store-profile-row { display: flex; align-items: center; gap: var(--space-12); width: 100%; padding: var(--space-12) 0; border: 0; border-top: 1px solid var(--color-border-default); background: transparent; font: inherit; font-size: var(--font-body-s-size); color: var(--color-text-primary); text-decoration: none; cursor: pointer; text-align: start; }
+.store-profile-row > :last-child { margin-inline-start: auto; color: var(--color-text-tertiary); }
+.store-profile-danger { color: var(--color-status-danger); }
+.store-updates { list-style: none; margin: var(--space-8) 0 0; padding: 0; display: grid; gap: 0; }
+.store-updates li { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-12) 0; border-top: 1px solid var(--color-border-default); font-size: var(--font-body-s-size); }
+.store-updates a { color: var(--color-text-primary); text-decoration: none; }
+.store-updates a:hover { text-decoration: underline; }
+.store-updates .store-quiet { margin: 0; font-size: var(--font-caption-size); }
+@media (max-width: 1000px) { .store-profile { grid-template-columns: minmax(0, 1fr); } }
+
+/* Deferral notice, following Figma "SM · Deferral Notice". */
+.store-notices { display: flex; flex-direction: column; gap: var(--space-16); margin-bottom: var(--space-20); }
+.store-notice { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-12); }
+.store-notice > .card { width: 100%; }
+.store-notice-banner { width: 100%; padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-status-warning-soft); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-8); }
+.store-notice-banner h2, .store-notice-banner p { margin: 0; }
+.store-notice-banner p { font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
+.decision-like-heading { margin: 0 0 var(--space-8); font-size: var(--font-caption-size); font-weight: var(--font-caption-medium-weight); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-secondary); }
+.store-notice .card p { margin: 0; font-size: var(--font-body-s-size); }

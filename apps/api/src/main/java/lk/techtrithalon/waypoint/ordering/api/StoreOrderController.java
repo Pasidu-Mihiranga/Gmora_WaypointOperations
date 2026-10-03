@@ -8,6 +8,7 @@ import lk.techtrithalon.waypoint.ordering.application.OrderCommandService;
 import lk.techtrithalon.waypoint.ordering.application.OrderQueryService;
 import lk.techtrithalon.waypoint.ordering.domain.CutoffInfo;
 import lk.techtrithalon.waypoint.ordering.domain.CustomerOrder;
+import lk.techtrithalon.waypoint.ordering.domain.OrderEstimate;
 import lk.techtrithalon.waypoint.ordering.domain.OrderPage;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,6 +36,11 @@ class StoreOrderController {
     @GetMapping("/cutoff")
     CutoffInfo cutoff(@AuthenticationPrincipal CurrentUser user) {
         return queries.cutoff(user);
+    }
+
+    @GetMapping("/order-estimate")
+    OrderEstimate estimate(@AuthenticationPrincipal CurrentUser user, @RequestParam String temp, @RequestParam int units) {
+        return queries.estimate(user, temp, units);
     }
 
     @GetMapping("/orders")

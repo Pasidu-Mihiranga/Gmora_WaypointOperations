@@ -17,6 +17,23 @@ class StoreReceiptController {
     private final ReceiptService service;
     StoreReceiptController(ReceiptService service) { this.service = service; }
 
+    @GetMapping("/home")
+    ReceiptViews.StoreHome home(@AuthenticationPrincipal CurrentUser user) {
+        return service.home(user);
+    }
+
+    @GetMapping("/order-board")
+    ReceiptViews.StoreOrderBoard orderBoard(@AuthenticationPrincipal CurrentUser user, @RequestParam(required=false) String group,
+                                            @RequestParam(required=false) String q, @RequestParam(defaultValue="0") int page,
+                                            @RequestParam(defaultValue="50") int size) {
+        return service.orderBoard(user, group, q, page, size);
+    }
+
+    @GetMapping("/notifications")
+    List<ReceiptViews.StoreNotification> notifications(@AuthenticationPrincipal CurrentUser user, @RequestParam(defaultValue="30") int limit) {
+        return service.notifications(user, limit);
+    }
+
     @GetMapping("/deliveries")
     ReceiptViews.DeliveryList deliveries(@AuthenticationPrincipal CurrentUser user, @RequestParam(required=false) String phase) {
         return service.deliveries(user, phase);

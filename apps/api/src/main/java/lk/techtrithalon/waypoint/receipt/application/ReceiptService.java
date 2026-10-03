@@ -3,6 +3,8 @@ package lk.techtrithalon.waypoint.receipt.application;
 import java.time.Clock;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ import lk.techtrithalon.waypoint.loading.domain.LoadTask;
 import lk.techtrithalon.waypoint.ordering.application.OrderCommandService;
 import lk.techtrithalon.waypoint.ordering.application.OrderQueryService;
 import lk.techtrithalon.waypoint.ordering.domain.CustomerOrder;
+import lk.techtrithalon.waypoint.planning.application.DeferralService;
 import lk.techtrithalon.waypoint.planning.application.PublishedRouteService;
 import lk.techtrithalon.waypoint.receipt.domain.ReceiptViews;
 import lk.techtrithalon.waypoint.reference.application.ReferenceService;
@@ -39,6 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ReceiptService {
     private static final String LISTED = "planned,loaded,in_transit,delivered,partial,failed,receipt_confirmed";
+    private static final String OPEN_ORDERS = "confirmed,planned,loaded,in_transit,deferred";
+    private static final String COMPLETED_ORDERS = "delivered,partial,receipt_confirmed";
     public static final List<String> DISPUTE_KINDS = List.of("SHORT", "DAMAGED", "WRONG_ITEM", "OTHER");
     public static final List<String> DECISIONS = List.of("CREDIT", "REPLACEMENT", "NO_ACTION");
 
@@ -49,13 +54,14 @@ public class ReceiptService {
     private final DeliveryReadService deliveryReads;
     private final PublishedRouteService routes;
     private final ReferenceService reference;
+    private final DeferralService deferrals;
     private final AuditService audit;
     private final Clock clock;
 
     public ReceiptService(ReceiptRepository receipts, OrderQueryService orderQueries, OrderCommandService orderCommands, LoadTaskService loadTasks,
-                          DeliveryReadService deliveryReads, PublishedRouteService routes, ReferenceService reference, AuditService audit, Clock clock) {
+                          DeliveryReadService deliveryReads, PublishedRouteService routes, ReferenceService reference, DeferralService deferrals, AuditService audit, Clock clock) {
         this.receipts = receipts; this.orderQueries = orderQueries; this.orderCommands = orderCommands; this.loadTasks = loadTasks;
-        this.deliveryReads = deliveryReads; this.routes = routes; this.reference = reference; this.audit = audit; this.clock = clock;
+        this.deliveryReads = deliveryReads; this.routes = routes; this.reference = reference; this.deferrals = deferrals; this.audit = audit; this.clock = clock;
     }
 
     /** What the loaded view of one order needs, gathered once. */
@@ -63,6 +69,107 @@ public class ReceiptService {
                          Optional<ReceiptViews.Discrepancy> discrepancy) {}
 
     // ---------------------------------------------------------------- store reads
+
+    /** Counts and the next delivery for the home screen, so the browser never has to add anything up. */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('STORE_MANAGER')")
+    public ReceiptViews.StoreHome home(CurrentUser user) {
+        if (user.outletId() == null) throw notFound();
+        var outlet = reference.outlet(user, user.outletId());
+        long open = orderQueries.storeOrders(user, null, OPEN_ORDERS, null, "orderDate", false, 0, 1).total();
+        long completed = orderQueries.storeOrders(user, null, COMPLETED_ORDERS, null, "orderDate", false, 0, 1).total();
+        var coming = deliveries(user, null).rows().stream().filter(r -> !"DELIVERED".equals(r.phase()))
+            .sorted(Comparator.comparing(ReceiptViews.DeliveryRow::planDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(ReceiptViews.DeliveryRow::plannedArrival, Comparator.nullsLast(Comparator.naturalOrder()))).toList();
+        var issues = receipts.discrepanciesForOutlet(user.outletId(), "OPEN");
+        var latest = issues.stream().max(Comparator.comparing(ReceiptViews.Discrepancy::reportedAt)).orElse(null);
+        return new ReceiptViews.StoreHome(outlet.outletId(), outlet.brand(), outlet.district(), outlet.depot(), open, coming.size(), issues.size(),
+            completed, coming.isEmpty() ? null : coming.getFirst(), latest);
+    }
+
+    /**
+     * What happened to the outlet's orders, newest first: placed, deferred, loaded and dispatched, delivered, received,
+     * and issues reported or resolved. Each comes from a stored event with its own time, so nothing is made up.
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('STORE_MANAGER')")
+    public List<ReceiptViews.StoreNotification> notifications(CurrentUser user, int limit) {
+        if (user.outletId() == null) throw notFound();
+        var orders = orderQueries.storeOrders(user, null, null, null, "orderDate", false, 0, 200).items();
+        List<ReceiptViews.StoreNotification> events = new ArrayList<>();
+        for (var o : orders) if (o.placedAt() != null) events.add(new ReceiptViews.StoreNotification("ORDER_SUBMITTED", o.id(), o.ref(), o.placedAt(), o.orderDate()));
+        for (var d : deferrals.storeNotices(user))
+            events.add(new ReceiptViews.StoreNotification("ORDER_DEFERRED", d.orderId(), d.orderRef(), d.decidedAt(), d.nextPlanningDate()));
+        var listed = orders.stream().filter(o -> LISTED.contains(o.status())).toList();
+        if (!listed.isEmpty()) for (var f : facts(user, listed)) {
+            var o = f.order();
+            f.task().ifPresent(t -> { if (t.loadedAt() != null) events.add(new ReceiptViews.StoreNotification("ORDER_DISPATCHED", o.id(), o.ref(), t.loadedAt(), t.planDate())); });
+            f.record().ifPresent(r -> events.add(new ReceiptViews.StoreNotification("ORDER_DELIVERED", o.id(), o.ref(), r.occurredAt(), null)));
+            f.receipt().filter(r -> "CONFIRMED".equals(r.outcome()))
+                .ifPresent(r -> events.add(new ReceiptViews.StoreNotification("RECEIPT_CONFIRMED", o.id(), o.ref(), r.confirmedAt(), null)));
+        }
+        for (var d : receipts.discrepanciesForOutlet(user.outletId(), null)) {
+            events.add(new ReceiptViews.StoreNotification("ISSUE_REPORTED", d.orderId(), d.orderRef(), d.reportedAt(), null));
+            if (d.resolvedAt() != null) events.add(new ReceiptViews.StoreNotification("ISSUE_RESOLVED", d.orderId(), d.orderRef(), d.resolvedAt(), null));
+        }
+        return events.stream().filter(e -> e.at() != null).sorted(Comparator.comparing(ReceiptViews.StoreNotification::at).reversed()).limit(Math.min(Math.max(limit, 1), 100)).toList();
+    }
+
+    private static final List<String> GROUPS = List.of("ALL", "SUBMITTED", "PLANNED", "IN_DELIVERY", "DELIVERED", "ISSUE", "DEFERRED");
+
+    /**
+     * The Orders screen: every order of the signed-in outlet with its chip group, the count in each chip,
+     * and one filtered page. An order whose receipt is disputed counts as an Issue even though it stays delivered.
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('STORE_MANAGER')")
+    public ReceiptViews.StoreOrderBoard orderBoard(CurrentUser user, String group, String query, int page, int size) {
+        String wanted = group == null || group.isBlank() ? "ALL" : group;
+        if (!GROUPS.contains(wanted))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_GROUP", "Use ALL, SUBMITTED, PLANNED, IN_DELIVERY, DELIVERED, ISSUE or DEFERRED");
+        List<CustomerOrder> orders = new ArrayList<>();
+        for (int p = 0; p < 5; p++) {
+            var chunk = orderQueries.storeOrders(user, null, null, null, "orderDate", false, p, 200);
+            orders.addAll(chunk.items());
+            if (orders.size() >= chunk.total() || chunk.items().isEmpty()) break;
+        }
+        var listed = orders.stream().filter(o -> LISTED.contains(o.status())).toList();
+        Map<Long, Facts> facts = new HashMap<>();
+        if (!listed.isEmpty()) facts(user, listed).forEach(f -> facts.put(f.order().id(), f));
+        var outlet = reference.outlet(user, user.outletId());
+        List<ReceiptViews.StoreOrderRow> rows = orders.stream().map(o -> storeOrderRow(o, facts.get(o.id()), outlet)).toList();
+        var counts = new ReceiptViews.StoreOrderCounts(rows.size(), count(rows, "SUBMITTED"), count(rows, "PLANNED"), count(rows, "IN_DELIVERY"),
+            count(rows, "DELIVERED"), count(rows, "ISSUE"), count(rows, "DEFERRED"));
+        String needle = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        var matching = rows.stream().filter(r -> "ALL".equals(wanted) || wanted.equals(r.group()))
+            .filter(r -> needle.isEmpty() || r.ref().toLowerCase(Locale.ROOT).contains(needle)).toList();
+        int safeSize = Math.min(Math.max(size, 1), 200);
+        int from = Math.min(Math.max(page, 0) * safeSize, matching.size());
+        return new ReceiptViews.StoreOrderBoard(counts, matching.subList(from, Math.min(from + safeSize, matching.size())), matching.size(),
+            Math.max(page, 0), safeSize);
+    }
+
+    private static int count(List<ReceiptViews.StoreOrderRow> rows, String group) {
+        return (int) rows.stream().filter(r -> group.equals(r.group())).count();
+    }
+
+    private ReceiptViews.StoreOrderRow storeOrderRow(CustomerOrder o, Facts f, Outlet outlet) {
+        var delivery = f == null ? null : row(f, outlet);
+        boolean disputed = delivery != null && "DISPUTED".equals(delivery.receipt());
+        String group = disputed ? "ISSUE" : switch (o.status()) {
+            case "planned", "loaded" -> "PLANNED";
+            case "in_transit" -> "IN_DELIVERY";
+            case "delivered", "partial", "receipt_confirmed" -> "DELIVERED";
+            case "failed" -> "ISSUE";
+            case "deferred" -> "DEFERRED";
+            case "cancelled" -> "CANCELLED";
+            default -> "SUBMITTED";
+        };
+        return new ReceiptViews.StoreOrderRow(o.id(), o.ref(), o.orderDate(), o.planningDate(), o.placedAt(), o.status(), group, o.tempRequirement(),
+            o.units(), o.weightKg(), o.volumeM3(), delivery == null ? o.planningDate() : delivery.planDate(),
+            delivery == null ? null : delivery.windowOpen(), delivery == null ? null : delivery.windowClose(),
+            delivery == null ? null : delivery.plannedArrival());
+    }
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('STORE_MANAGER')")

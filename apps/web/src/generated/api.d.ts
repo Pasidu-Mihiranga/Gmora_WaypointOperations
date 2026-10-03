@@ -651,7 +651,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["home"];
+        get: operations["home_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1204,6 +1204,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/store/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["home"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/store/issues": {
         parameters: {
             query?: never;
@@ -1212,6 +1228,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["notifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store/order-board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orderBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store/order-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["estimate"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2430,6 +2494,27 @@ export interface components {
             reason?: string;
             reasonCode?: string;
         };
+        OrderEstimate: {
+            /** @description Whether this outlet may place orders of this temperature */
+            allowed?: boolean;
+            /**
+             * Format: int64
+             * @description How many past orders the estimate is based on
+             */
+            basisOrders?: number;
+            /** @description Whether this outlet may place chilled orders at all */
+            chilledAllowed?: boolean;
+            /** Format: date */
+            deliveryDate?: string;
+            tempRequirement?: string;
+            /** Format: int32 */
+            units?: number;
+            volumeM3?: number | null;
+            /** @description Null when there are no past orders to estimate from */
+            weightKg?: number | null;
+            windowClose?: string;
+            windowOpen?: string;
+        };
         OrderFairness: {
             /** @description Carried into this run by an earlier published deferral */
             carriedForward: boolean;
@@ -2835,6 +2920,107 @@ export interface components {
             /** Format: int32 */
             seq?: number;
             serviceStart?: string;
+        };
+        /** @description The store manager's home summary. Every count is computed on the server for the signed-in outlet. */
+        StoreHome: {
+            brand?: string;
+            /**
+             * Format: int64
+             * @description Orders delivered in full or part, or already received
+             */
+            completedOrders?: number;
+            depot?: string;
+            district?: string;
+            /** @description The most recently reported open issue */
+            latestOpenIssue?: components["schemas"]["ReceiptDiscrepancy"];
+            /** @description The earliest delivery still to arrive */
+            nextDelivery?: components["schemas"]["ReceiptDeliveryRow"];
+            /**
+             * Format: int32
+             * @description Reported issues the dispatcher has not resolved
+             */
+            openIssues?: number;
+            /**
+             * Format: int64
+             * @description Orders confirmed, planned, loaded, in transit or deferred
+             */
+            openOrders?: number;
+            outletId?: string;
+            /**
+             * Format: int32
+             * @description Deliveries still planned, loading or on the road
+             */
+            pendingDeliveries?: number;
+        };
+        /** @description One thing that happened to the outlet's orders, newest first. Built from stored events; there is no read state. */
+        StoreNotification: {
+            /** Format: date-time */
+            at?: string;
+            /**
+             * Format: date
+             * @description The delivery or planning day the event is about, when there is one
+             */
+            date?: string | null;
+            /** @description ORDER_SUBMITTED, ORDER_DEFERRED, ORDER_DISPATCHED, ORDER_DELIVERED, RECEIPT_CONFIRMED, ISSUE_REPORTED or ISSUE_RESOLVED */
+            kind?: string;
+            /** Format: int64 */
+            orderId?: number;
+            orderRef?: string;
+        };
+        StoreOrderBoard: {
+            counts?: components["schemas"]["StoreOrderCounts"];
+            items?: components["schemas"]["StoreOrderRow"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            total?: number;
+        };
+        /** @description How many of the outlet's orders sit in each chip. Independent of the search and the selected chip. */
+        StoreOrderCounts: {
+            /** Format: int32 */
+            all?: number;
+            /** Format: int32 */
+            deferred?: number;
+            /** Format: int32 */
+            delivered?: number;
+            /** Format: int32 */
+            inDelivery?: number;
+            /** Format: int32 */
+            issue?: number;
+            /** Format: int32 */
+            planned?: number;
+            /** Format: int32 */
+            submitted?: number;
+        };
+        /** @description One order on the store manager's Orders screen, with the group its chip belongs to. */
+        StoreOrderRow: {
+            /**
+             * Format: date
+             * @description The planned delivery day once known, else the planning run the order sits in
+             */
+            deliveryDate?: string;
+            /** @description SUBMITTED, PLANNED, IN_DELIVERY, DELIVERED, ISSUE, DEFERRED or CANCELLED */
+            group?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: date */
+            orderDate?: string;
+            /** Format: date-time */
+            placedAt?: string;
+            plannedArrival?: string | null;
+            /** Format: date */
+            planningDate?: string;
+            ref?: string;
+            status?: string;
+            tempRequirement?: string;
+            /** Format: int32 */
+            units?: number;
+            volumeM3?: number;
+            weightKg?: number;
+            windowClose?: string | null;
+            windowOpen?: string | null;
         };
         Summary: {
             /** Format: int32 */
@@ -4107,7 +4293,7 @@ export interface operations {
             };
         };
     };
-    home: {
+    home_1: {
         parameters: {
             query?: {
                 date?: string;
@@ -4937,6 +5123,26 @@ export interface operations {
             };
         };
     };
+    home: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StoreHome"];
+                };
+            };
+        };
+    };
     issues: {
         parameters: {
             query?: {
@@ -4955,6 +5161,76 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReceiptDiscrepancy"][];
+                };
+            };
+        };
+    };
+    notifications: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StoreNotification"][];
+                };
+            };
+        };
+    };
+    orderBoard: {
+        parameters: {
+            query?: {
+                group?: string;
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StoreOrderBoard"];
+                };
+            };
+        };
+    };
+    estimate: {
+        parameters: {
+            query: {
+                temp: string;
+                units: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderEstimate"];
                 };
             };
         };

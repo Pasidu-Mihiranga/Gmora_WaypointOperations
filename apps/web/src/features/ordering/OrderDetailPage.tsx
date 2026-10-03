@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Send } from 'lucide-react'
+import { clock, useStoreDelivery } from '../receipt/receiptQueries'
 import { Badge, Card, ErrorState, LoadingState, PageHeader, TypeBadge } from '../../components'
-import { formatVolume, formatWeight, statusTone, tempKind, tempLabel } from './orderDisplay'
+import { formatVolume, formatWeight, relativeDay, relativeStamp, statusTone, storeStatusPill, tempKind, tempLabel } from './orderDisplay'
 import { StoreDeferralNotices } from './StoreDeferralNotices'
-import { useDispatcherOrder, useStoreOrder } from './orderQueries'
+import { useDispatcherOrder, useStoreCutoff, useStoreOrder } from './orderQueries'
+import './storeHome.css'
 
 export function DispatcherOrderDetailPage() {
   const id = Number(useParams().id)
@@ -11,11 +14,46 @@ export function DispatcherOrderDetailPage() {
   return <OrderDetailView order={order} backTo="/dispatcher/orders" backLabel="Back to orders" />
 }
 
+const DELIVERY_STATUSES = ['planned', 'loaded', 'in_transit', 'delivered', 'partial', 'failed', 'receipt_confirmed']
+
+/** Figma "SM · Order": a summary card with when it was placed, when it arrives and where it stands. */
 export function StoreOrderDetailPage() {
   const id = Number(useParams().id)
   const order = useStoreOrder(id)
-  return <OrderDetailView order={order} backTo="/store/orders" backLabel="Back to my orders"
-    notices={<StoreDeferralNotices orderId={id} />} />
+  const cutoff = useStoreCutoff()
+  const data = order.data
+  const delivery = useStoreDelivery(data && DELIVERY_STATUSES.includes(data.status ?? '') ? id : undefined)
+  const row = delivery.data?.row
+  const pill = data ? storeStatusPill(data.status ?? '', row?.receipt) : null
+  const clockNow = cutoff.data?.serverNow && cutoff.data.timeZone ? { nowIso: cutoff.data.serverNow, timeZone: cutoff.data.timeZone } : null
+  const when = (iso?: string | null) => relativeStamp(iso, clockNow)
+  const deliveryDay = row ? (clockNow ? relativeDay(row.planDate, clockNow.nowIso, clockNow.timeZone) : row.planDate)
+    : data?.planningDate && clockNow ? relativeDay(data.planningDate, clockNow.nowIso, clockNow.timeZone) : null
+
+  return <>
+    <PageHeader title={data ? `Order ${data.ref}` : 'Order'}
+      subtitle={data && pill ? `${pill.label} · ${data.brand} · ${data.district} · ${data.outletId}` : 'Order detail'}
+      actions={<Link className="btn btn-primary btn-md store-place-button" to="/store/orders/new"><Send size={16} aria-hidden="true" />Place New Order</Link>} />
+    {order.isPending && <LoadingState rows={3} label="Loading order" />}
+    {order.isError && <ErrorState error={order.error} message="Order could not be loaded." onRetry={() => void order.refetch()} />}
+    {data && <StoreDeferralNotices orderId={id} />}
+    {data && pill && <Card className="store-detail" aria-label="Order summary">
+      <h2 className="store-detail-title">{tempLabel(data.tempRequirement ?? 'ambient')} order · {data.units} units · {formatVolume(data.volumeM3 ?? 0)}</h2>
+      <p>Placed {when(data.placedAt)}</p>
+      <p>Delivery {deliveryDay ?? '—'}{row?.windowOpen && row.windowClose ? ` · ${clock(row.windowOpen)}–${clock(row.windowClose)}` : ''}
+        {row?.plannedArrival && row.phase !== 'DELIVERED' ? ` · planned arrival ${clock(row.plannedArrival)}` : ''}</p>
+      <p>Current status: <Badge tone={pill.tone}>{pill.label}</Badge></p>
+      {row && (row.driverName || row.vehicleId) && <p>{[row.vehicleId, row.driverName ? `Driver ${row.driverName}` : null].filter(Boolean).join(' · ')}</p>}
+      <p>Weight {formatWeight(data.weightKg ?? 0)}</p>
+      {delivery.data && delivery.data.timeline.length > 0 && <ol className="store-detail-timeline" aria-label="Order timeline">
+        {delivery.data.timeline.map(event => <li key={event.label}><strong>{event.label}</strong> · {when(event.at)}</li>)}
+      </ol>}
+      <div className="store-detail-actions">
+        <Link className="btn btn-primary btn-md" to="/store/orders">Back to orders</Link>
+        {row && <Link className="btn btn-secondary btn-md" to={`/store/deliveries/${data.id}`}>View delivery →</Link>}
+      </div>
+    </Card>}
+  </>
 }
 
 function OrderDetailView({

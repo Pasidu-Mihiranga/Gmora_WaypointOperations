@@ -246,6 +246,42 @@ for role in STORE_MANAGER LOADER DRIVER; do
     curl -fsS -b "$cookies" "$API/api/v1/store/cutoff" > /dev/null || fail "store cutoff failed"
     curl -fsS -b "$cookies" "$API/api/v1/store/orders" > /dev/null || fail "store orders failed"
     curl -fsS -b "$cookies" "$API/api/v1/store/deferrals" > /dev/null || fail "store deferral notices failed"
+    home=$(curl -fsS -b "$cookies" "$API/api/v1/store/home") || fail "store home failed"
+    echo "$home" | python3 -c '
+import json, sys
+h = json.load(sys.stdin)
+assert h["outletId"] and h["brand"] and h["district"], "home must name the outlet"
+assert all(isinstance(h[k], int) and h[k] >= 0 for k in ("openOrders", "pendingDeliveries", "openIssues", "completedOrders")), "home counts must be whole numbers"
+assert (h["pendingDeliveries"] > 0) == (h["nextDelivery"] is not None), "next delivery disagrees with the pending count"
+assert (h["openIssues"] > 0) == (h["latestOpenIssue"] is not None), "open issue disagrees with the open count"
+' || fail "store home summary is inconsistent: $home"
+    [[ "$(curl -sS -o /dev/null -w '%{http_code}' "$API/api/v1/store/home")" == "401" ]] || fail "anonymous store home did not return 401"
+    board=$(curl -fsS -b "$cookies" "$API/api/v1/store/order-board") || fail "store order board failed"
+    echo "$board" | python3 -c '
+import json, sys
+b = json.load(sys.stdin)
+c = b["counts"]
+assert c["all"] >= sum(c[k] for k in ("submitted", "planned", "inDelivery", "delivered", "issue", "deferred")), "chip counts exceed the total"
+assert b["total"] <= c["all"] and all(i["group"] for i in b["items"]), "board rows must carry a group"
+' || fail "store order board is inconsistent: $board"
+    assert_failure 400 INVALID_GROUP -b "$cookies" "$API/api/v1/store/order-board?group=BOGUS"
+    estimate=$(curl -fsS -b "$cookies" "$API/api/v1/store/order-estimate?temp=ambient&units=10") || fail "store order estimate failed"
+    echo "$estimate" | python3 -c '
+import json, sys
+e = json.load(sys.stdin)
+assert e["units"] == 10 and e["allowed"] is True and e["deliveryDate"], "estimate must echo the units and name the delivery day"
+assert (e["weightKg"] is None) == (e["volumeM3"] is None) == (e["basisOrders"] == 0), "estimate figures must exist only when there is history"
+' || fail "store order estimate is inconsistent: $estimate"
+    notifications=$(curl -fsS -b "$cookies" "$API/api/v1/store/notifications?limit=50") || fail "store notifications failed"
+    echo "$notifications" | python3 -c '
+import json, sys
+events = json.load(sys.stdin)
+assert all(e["kind"] and e["orderRef"] and e["at"] for e in events), "every notification needs a kind, an order and a time"
+assert [e["at"] for e in events] == sorted((e["at"] for e in events), reverse=True), "notifications must be newest first"
+' || fail "store notifications are inconsistent: $notifications"
+    [[ "$(curl -sS -o /dev/null -w '%{http_code}' "$API/api/v1/store/notifications")" == "401" ]] || fail "anonymous store notifications did not return 401"
+    assert_failure 400 INVALID_TEMP -b "$cookies" "$API/api/v1/store/order-estimate?temp=frozen&units=2"
+    assert_failure 400 INVALID_UNITS -b "$cookies" "$API/api/v1/store/order-estimate?temp=ambient&units=0"
     assert_failure 403 FORBIDDEN -b "$cookies" "$API/api/v1/dispatcher/deferrals?date=$demo_date&depot=$depot"
     assert_failure 404 NOT_FOUND -b "$cookies" -H 'X-Requested-With: Waypoint' -X POST "$API/api/v1/store/deferrals/999999999/acknowledge"
     assert_failure 403 FORBIDDEN -b "$cookies" "$API/api/v1/dispatcher/planning/snapshots/$snap_id"

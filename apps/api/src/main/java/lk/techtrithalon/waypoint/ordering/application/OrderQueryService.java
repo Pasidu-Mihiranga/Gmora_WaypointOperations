@@ -11,6 +11,7 @@ import lk.techtrithalon.waypoint.ordering.domain.CutoffInfo;
 import lk.techtrithalon.waypoint.ordering.domain.CustomerOrder;
 import lk.techtrithalon.waypoint.ordering.domain.DistrictDemand;
 import lk.techtrithalon.waypoint.ordering.domain.DashboardSnapshot;
+import lk.techtrithalon.waypoint.ordering.domain.OrderEstimate;
 import lk.techtrithalon.waypoint.ordering.domain.OrderPage;
 import lk.techtrithalon.waypoint.ordering.domain.PlanningQueueSummary;
 import lk.techtrithalon.waypoint.reference.ReferenceProperties;
@@ -217,6 +218,28 @@ public class OrderQueryService {
     public CutoffInfo cutoff(CurrentUser user) {
         if (user.outletId() == null) throw missing();
         return deliveryDates.cutoffInfo();
+    }
+
+    /**
+     * Estimates weight and volume for a draft order from the outlet brand's past orders of that temperature, so the
+     * store manager enters units and not cubic metres. Nothing is invented: with no history the figures are null.
+     */
+    @PreAuthorize("hasRole('STORE_MANAGER')")
+    public OrderEstimate estimate(CurrentUser user, String tempRequirement, int units) {
+        if (user.outletId() == null) throw missing();
+        String temp = tempRequirement == null ? "" : tempRequirement.trim().toLowerCase();
+        if (!"ambient".equals(temp) && !"chilled".equals(temp))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TEMP", "Use ambient or chilled");
+        if (units < 1 || units > 100_000)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_UNITS", "Units must be between 1 and 100000");
+        var outlet = reference.outlet(user, user.outletId());
+        var footprint = orders.typicalFootprint(outlet.brand(), temp);
+        var info = deliveryDates.cutoffInfo();
+        return new OrderEstimate(temp, units, OrderRules.mayOrder(outlet.brand(), temp), OrderRules.mayOrder(outlet.brand(), "chilled"),
+            footprint.map(f -> f.weightKgPerUnit().multiply(java.math.BigDecimal.valueOf(units)).setScale(2, java.math.RoundingMode.HALF_UP)).orElse(null),
+            footprint.map(f -> f.volumeM3PerUnit().multiply(java.math.BigDecimal.valueOf(units)).setScale(3, java.math.RoundingMode.HALF_UP)).orElse(null),
+            footprint.map(OrderRepository.Footprint::orders).orElse(0L), info.nextDeliveryDate(),
+            outlet.effectiveWindowOpen(), outlet.effectiveWindowClose());
     }
 
     private static ApiException missing() {

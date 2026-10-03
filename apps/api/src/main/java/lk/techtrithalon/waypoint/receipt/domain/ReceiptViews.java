@@ -53,4 +53,33 @@ public final class ReceiptViews {
                               @Schema(nullable=true, description="CREDIT, REPLACEMENT or NO_ACTION") String decision,
                               @Schema(nullable=true) String decisionNote, @Schema(nullable=true) String resolvedByName,
                               @Schema(nullable=true) Instant resolvedAt, int version) {}
+
+    @Schema(name="StoreHome", description="The store manager's home summary. Every count is computed on the server for the signed-in outlet.")
+    public record StoreHome(String outletId, String brand, String district, String depot,
+                            @Schema(description="Orders confirmed, planned, loaded, in transit or deferred") long openOrders,
+                            @Schema(description="Deliveries still planned, loading or on the road") int pendingDeliveries,
+                            @Schema(description="Reported issues the dispatcher has not resolved") int openIssues,
+                            @Schema(description="Orders delivered in full or part, or already received") long completedOrders,
+                            @Schema(nullable=true, description="The earliest delivery still to arrive") DeliveryRow nextDelivery,
+                            @Schema(nullable=true, description="The most recently reported open issue") Discrepancy latestOpenIssue) {}
+
+    @Schema(name="StoreOrderRow", description="One order on the store manager's Orders screen, with the group its chip belongs to.")
+    public record StoreOrderRow(long id, String ref, LocalDate orderDate, LocalDate planningDate, Instant placedAt, String status,
+                                @Schema(description="SUBMITTED, PLANNED, IN_DELIVERY, DELIVERED, ISSUE, DEFERRED or CANCELLED") String group,
+                                String tempRequirement, int units, java.math.BigDecimal weightKg, java.math.BigDecimal volumeM3,
+                                @Schema(description="The planned delivery day once known, else the planning run the order sits in") LocalDate deliveryDate,
+                                @Schema(nullable=true) LocalTime windowOpen, @Schema(nullable=true) LocalTime windowClose,
+                                @Schema(nullable=true) LocalTime plannedArrival) {}
+
+    @Schema(name="StoreOrderCounts", description="How many of the outlet's orders sit in each chip. Independent of the search and the selected chip.")
+    public record StoreOrderCounts(int all, int submitted, int planned, int inDelivery, int delivered, int issue, int deferred) {}
+
+    @Schema(name="StoreOrderBoard")
+    public record StoreOrderBoard(StoreOrderCounts counts, List<StoreOrderRow> items, long total, int page, int size) {}
+
+    @Schema(name="StoreNotification", description="One thing that happened to the outlet's orders, newest first. Built from stored events; there is no read state.")
+    public record StoreNotification(
+        @Schema(description="ORDER_SUBMITTED, ORDER_DEFERRED, ORDER_DISPATCHED, ORDER_DELIVERED, RECEIPT_CONFIRMED, ISSUE_REPORTED or ISSUE_RESOLVED") String kind,
+        long orderId, String orderRef, Instant at,
+        @Schema(nullable=true, description="The delivery or planning day the event is about, when there is one") LocalDate date) {}
 }

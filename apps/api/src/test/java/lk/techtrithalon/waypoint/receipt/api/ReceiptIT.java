@@ -87,6 +87,95 @@ class ReceiptIT extends ReferenceApiTestSupport {
         failure(mvc.perform(get("/api/v1/store/issues").cookie(dispatcher)).andReturn(), 403, "FORBIDDEN");
     }
 
+    @Test void theStoreHomeSummaryIsComputedOnTheServerForTheOwnOutletOnly() throws Exception {
+        var empty = getJson(store, "/api/v1/store/home");
+        assertThat(empty.path("outletId").asText()).isEqualTo("OUT901");
+        assertThat(empty.path("openOrders").asInt()).isEqualTo(1);        // SYN001 is confirmed; SYN002 belongs to another outlet
+        assertThat(empty.path("pendingDeliveries").asInt()).isZero();
+        assertThat(empty.path("nextDelivery").isNull()).isTrue();
+        assertThat(empty.path("latestOpenIssue").isNull()).isTrue();
+
+        publish();
+        var planned = getJson(store, "/api/v1/store/home");
+        assertThat(planned.path("openOrders").asInt()).isEqualTo(1);
+        assertThat(planned.path("pendingDeliveries").asInt()).isEqualTo(1);
+        assertThat(planned.path("nextDelivery").path("orderRef").asText()).isEqualTo("SYN001");
+        assertThat(planned.path("nextDelivery").path("driverName").asText()).isNotBlank();
+        assertThat(planned.path("nextDelivery").path("plannedArrival").asText()).isEqualTo("03:50:00");
+
+        handOver(1); driverStart(1);
+        deliver(freshOrder, "DELIVERED", null);
+        postJson(store, "/api/v1/store/deliveries/" + freshOrder + "/issue", Map.of("kind", "SHORT", "affectedUnits", 2, "note", "Two crates missing"), 200);
+        var after = getJson(store, "/api/v1/store/home");
+        assertThat(after.path("openOrders").asInt()).isZero();
+        assertThat(after.path("pendingDeliveries").asInt()).isZero();
+        assertThat(after.path("completedOrders").asInt()).isEqualTo(1);
+        assertThat(after.path("openIssues").asInt()).isEqualTo(1);
+        assertThat(after.path("latestOpenIssue").path("orderRef").asText()).isEqualTo("SYN001");
+        assertThat(after.path("nextDelivery").isNull()).isTrue();
+
+        failure(mvc.perform(get("/api/v1/store/home")).andReturn(), 401, "UNAUTHENTICATED");
+        failure(mvc.perform(get("/api/v1/store/home").cookie(driver)).andReturn(), 403, "FORBIDDEN");
+        failure(mvc.perform(get("/api/v1/store/home").cookie(dispatcher)).andReturn(), 403, "FORBIDDEN");
+    }
+
+    @Test void theOrderBoardGroupsCountsAndFiltersOnTheServerForTheOwnOutletOnly() throws Exception {
+        var submitted = getJson(store, "/api/v1/store/order-board");
+        assertThat(submitted.path("counts").path("all").asInt()).isEqualTo(1);       // SYN002 belongs to another outlet
+        assertThat(submitted.path("counts").path("submitted").asInt()).isEqualTo(1);
+        assertThat(submitted.path("items").get(0).path("group").asText()).isEqualTo("SUBMITTED");
+        assertThat(submitted.path("items").get(0).path("plannedArrival").isNull()).isTrue();
+
+        publish();
+        var planned = getJson(store, "/api/v1/store/order-board?group=PLANNED");
+        assertThat(planned.path("total").asInt()).isEqualTo(1);
+        assertThat(planned.path("counts").path("planned").asInt()).isEqualTo(1);
+        assertThat(planned.path("items").get(0).path("plannedArrival").asText()).isEqualTo("03:50:00");
+        assertThat(planned.path("items").get(0).path("windowOpen").asText()).isEqualTo("05:00:00");
+        assertThat(getJson(store, "/api/v1/store/order-board?group=SUBMITTED").path("total").asInt()).isZero();
+
+        handOver(1); driverStart(1);
+        deliver(freshOrder, "DELIVERED", null);
+        assertThat(getJson(store, "/api/v1/store/order-board?group=DELIVERED").path("total").asInt()).isEqualTo(1);
+        postJson(store, "/api/v1/store/deliveries/" + freshOrder + "/issue", Map.of("kind", "SHORT", "affectedUnits", 2, "note", "Two crates missing"), 200);
+        var issue = getJson(store, "/api/v1/store/order-board?group=ISSUE");
+        assertThat(issue.path("total").asInt()).isEqualTo(1);                       // a disputed receipt counts as an Issue
+        assertThat(issue.path("items").get(0).path("status").asText()).isEqualTo("delivered");
+        assertThat(issue.path("counts").path("issue").asInt()).isEqualTo(1);
+        assertThat(issue.path("counts").path("delivered").asInt()).isZero();
+        assertThat(getJson(store, "/api/v1/store/order-board?group=DELIVERED").path("total").asInt()).isZero();
+        assertThat(getJson(store, "/api/v1/store/order-board?q=ZZZ").path("total").asInt()).isZero();
+        assertThat(getJson(store, "/api/v1/store/order-board?q=syn001").path("total").asInt()).isEqualTo(1);
+        assertThat(getJson(store, "/api/v1/store/order-board?q=ZZZ").path("counts").path("all").asInt()).isEqualTo(1);   // chips ignore the search
+
+        failure(mvc.perform(get("/api/v1/store/order-board?group=BOGUS").cookie(store)).andReturn(), 400, "INVALID_GROUP");
+        failure(mvc.perform(get("/api/v1/store/order-board")).andReturn(), 401, "UNAUTHENTICATED");
+        failure(mvc.perform(get("/api/v1/store/order-board").cookie(driver)).andReturn(), 403, "FORBIDDEN");
+    }
+
+    @Test void notificationsAreBuiltFromStoredEventsNewestFirstForTheOwnOutletOnly() throws Exception {
+        var first = getJson(store, "/api/v1/store/notifications");
+        assertThat(kinds(first)).containsExactly("ORDER_SUBMITTED");                 // SYN002 belongs to another outlet
+        assertThat(first.get(0).path("orderRef").asText()).isEqualTo("SYN001");
+
+        publish(); handOver(1); driverStart(1);
+        deliver(freshOrder, "DELIVERED", null);
+        postJson(store, "/api/v1/store/deliveries/" + freshOrder + "/issue", Map.of("kind", "SHORT", "affectedUnits", 2, "note", "Two crates missing"), 200);
+        var all = getJson(store, "/api/v1/store/notifications");
+        assertThat(kinds(all)).contains("ORDER_SUBMITTED", "ORDER_DISPATCHED", "ORDER_DELIVERED", "ISSUE_REPORTED");
+        for (int i = 1; i < all.size(); i++) assertThat(java.time.Instant.parse(all.get(i - 1).path("at").asText())).isAfterOrEqualTo(java.time.Instant.parse(all.get(i).path("at").asText()));   // newest first
+        assertThat(getJson(store, "/api/v1/store/notifications?limit=1").size()).isEqualTo(1);
+
+        failure(mvc.perform(get("/api/v1/store/notifications")).andReturn(), 401, "UNAUTHENTICATED");
+        failure(mvc.perform(get("/api/v1/store/notifications").cookie(driver)).andReturn(), 403, "FORBIDDEN");
+    }
+
+    private static List<String> kinds(JsonNode events) {
+        var out = new java.util.ArrayList<String>();
+        events.forEach(e -> out.add(e.path("kind").asText()));
+        return out;
+    }
+
     @Test void aDeliveryThatFailedCannotBeConfirmed() throws Exception {
         publish(); handOver(1); driverStart(1);
         deliver(freshOrder, "FAILED", "CUSTOMER_UNAVAILABLE");

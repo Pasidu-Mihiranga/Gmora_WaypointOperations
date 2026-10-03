@@ -11,6 +11,11 @@ import lk.techtrithalon.waypoint.ordering.domain.OrderPage;
 
 
 public interface OrderRepository {
+    /** Weight and volume per unit across past orders of one brand and temperature; empty when there are none. */
+    Optional<Footprint> typicalFootprint(String brand, String tempRequirement);
+
+    /** Totals over {@code orders} past orders: weight and volume per unit. */
+    record Footprint(long orders, BigDecimal weightKgPerUnit, BigDecimal volumeM3PerUnit) {}
     boolean markPlanned(long id, int expectedVersion, java.time.Instant at);
     /** Moves an order between road statuses; false when it is no longer in {@code from} or its version changed. */
     boolean markRoadStatus(long id, int expectedVersion, Collection<String> from, String to, java.time.Instant at);

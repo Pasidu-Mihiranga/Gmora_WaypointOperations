@@ -155,6 +155,10 @@
   background: var(--color-brand-primary);
 }
 
+.sidebar-footer .nav-item-active {
+  background: var(--color-brand-primary);
+}
+
 .nav-item-active {
   color: var(--color-text-on-brand) !important;
   font-weight: 700;
@@ -321,6 +325,15 @@
   color: var(--color-text-secondary);
 }
 
+.topbar-outlet-name { font-size: var(--font-body-s-medium-size); font-weight: var(--font-body-s-medium-weight); color: var(--color-text-primary); white-space: nowrap; }
+.topbar-account { display: flex; align-items: center; gap: var(--space-10); color: var(--color-text-tertiary); }
+.topbar-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-text-secondary); }
+.topbar-account-link { display: flex; align-items: center; gap: var(--space-10); padding: var(--space-4) var(--space-8) var(--space-4) var(--space-4); border-radius: var(--radius-md); color: inherit; text-decoration: none; }
+.topbar-account-link:hover, .topbar-icon-button:hover { background: var(--color-bg-subtle); }
+.topbar-avatar { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--color-brand-primary); color: var(--color-text-on-brand); font-size: var(--font-caption-medium-size); font-weight: var(--font-caption-medium-weight); }
+.topbar-account-text { display: flex; flex-direction: column; text-align: start; }
+.topbar-account-text strong { font-size: var(--font-body-s-strong-size); font-weight: var(--font-body-s-strong-weight); color: var(--color-text-primary); }
+.topbar-account-text small { font-size: var(--font-caption-size); color: var(--color-text-tertiary); }
 .topbar-user { margin-inline-start: auto; display: flex; align-items: center; gap: var(--space-8); font-size: var(--font-body-s-medium-size); font-weight: var(--font-body-s-medium-weight); color: var(--color-text-secondary); }
 .shell-main { flex: 1; padding: var(--space-16) var(--space-24); background: var(--color-bg-surface); }
 

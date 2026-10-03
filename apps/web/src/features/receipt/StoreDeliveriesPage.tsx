@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, EmptyState, ErrorState, LoadingState, PageHeader } from '../../components'
+import { Check } from 'lucide-react'
+import { Badge, EmptyState, ErrorState, LoadingState, PageHeader, TypeBadge } from '../../components'
+import { relativeDay, tempLabel } from '../ordering/orderDisplay'
+import { useStoreCutoff } from '../ordering/orderQueries'
 import type { BadgeTone } from '../../components'
-import { clock, OUTCOME_LABELS, useStoreDeliveries, when } from './receiptQueries'
+import { clock, OUTCOME_LABELS, useStoreDeliveries, useStoreHome, when } from './receiptQueries'
 import type { DeliveryRow, Phase } from './receiptQueries'
 import './receipt.css'
 
@@ -22,11 +25,13 @@ export function deliveryBadge(row: Pick<DeliveryRow, 'phase' | 'receipt' | 'outc
 /** Figma Store Manager · Deliveries (89:7490): the outlet's orders on the way, delivered or received. */
 export function StoreDeliveriesPage() {
   const deliveries = useStoreDeliveries()
+  const home = useStoreHome()
+  const cutoff = useStoreCutoff()
   const [filter, setFilter] = useState<Phase | 'ALL'>('ALL')
   const rows = (deliveries.data ?? []).filter(row => filter === 'ALL' || row.phase === filter)
   return (
     <>
-      <PageHeader title="Deliveries" subtitle="Orders on their way to your outlet, and what the driver delivered." />
+      <PageHeader title="Deliveries" subtitle={home.data ? `${home.data.brand} · ${home.data.district} · ${home.data.outletId}` : 'Orders on their way to your outlet.'} />
       <div className="rc-filters" role="group" aria-label="Filter by delivery status">
         {FILTERS.map(f => (
           <button key={f.key} type="button" aria-pressed={filter === f.key} className={`filter-pill${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>{f.label}</button>
@@ -43,24 +48,28 @@ export function StoreDeliveriesPage() {
             <article key={row.orderId} className="rc-card" aria-label={row.orderRef}>
               <div className="rc-row">
                 <h2 className="rc-ref">{row.orderRef}</h2>
-                <Badge tone={badge.tone}>{badge.label}</Badge>
+                {badge.label === 'Pending' ? <TypeBadge kind="normal">Pending</TypeBadge> : <Badge tone={badge.tone}>{badge.label}</Badge>}
               </div>
               <p className="rc-sub">
-                {row.phase === 'DELIVERED' && row.deliveredAt ? when(row.deliveredAt) : `${row.planDate}`}
-                {row.windowOpen ? `, window ${clock(row.windowOpen)}–${clock(row.windowClose)}` : ''} · {row.units} {row.units === 1 ? 'unit' : 'units'}
+                {cutoff.data?.serverNow && cutoff.data.timeZone ? relativeDay(row.planDate, cutoff.data.serverNow, cutoff.data.timeZone) : row.planDate}
+                {row.windowOpen ? `, ${clock(row.windowOpen)}–${clock(row.windowClose)}` : ''} · {row.units} {row.units === 1 ? 'unit' : 'units'} · {tempLabel(row.tempRequirement)}
                 {row.plannedArrival && row.phase !== 'DELIVERED' ? ` · planned ${clock(row.plannedArrival)}` : ''}
               </p>
               <p className="rc-sub">
                 {row.driverName ? `Driver ${row.driverName}` : 'Driver not assigned yet'}{row.vehicleId ? ` · ${row.vehicleId}` : ''}
                 {row.outcome ? ` · ${OUTCOME_LABELS[row.outcome]}${row.deliveredUnits !== null ? ` (${row.deliveredUnits} of ${row.units} units)` : ''}` : ''}
+                {row.deliveredAt ? ` · ${when(row.deliveredAt)}` : ''}
               </p>
-              {row.phase === 'DELIVERED' ? (
-                <Link className="rc-link" to={`/store/deliveries/${row.orderId}`}>
-                  {row.receipt === 'NONE' && row.outcome !== 'FAILED' ? 'Confirm receipt →' : 'View delivery →'}
-                </Link>
-              ) : (
-                <Link className="rc-link" to={`/store/deliveries/${row.orderId}`}>View delivery →</Link>
-              )}
+              {row.phase !== 'PENDING' && <ol className="rc-steps" aria-label="Delivery progress">
+                {[['Planned', true], ['On the road', true], ['Delivered', row.phase === 'DELIVERED']].map(([label, done], index) =>
+                  <li key={String(label)} className={done ? 'rc-step rc-step-done' : 'rc-step'}>
+                    <span className="rc-step-dot">{done ? <Check size={12} aria-hidden="true" /> : index + 1}</span>
+                    <span className="rc-step-label">{label}</span>
+                  </li>)}
+              </ol>}
+              <Link className="rc-link" to={`/store/deliveries/${row.orderId}`}>
+                {row.phase === 'DELIVERED' && row.receipt === 'NONE' && row.outcome !== 'FAILED' ? 'Confirm receipt →' : 'View delivery →'}
+              </Link>
             </article>
           )
         })}

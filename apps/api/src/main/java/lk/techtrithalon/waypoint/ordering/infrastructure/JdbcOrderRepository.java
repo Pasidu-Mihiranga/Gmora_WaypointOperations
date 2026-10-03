@@ -25,6 +25,17 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcOrderRepository implements OrderRepository {
+    @Override
+    public java.util.Optional<Footprint> typicalFootprint(String brand, String tempRequirement) {
+        return db.query("""
+            SELECT count(*) AS orders, sum(weight_kg) / NULLIF(sum(units), 0) AS kg_per_unit, sum(volume_m3) / NULLIF(sum(units), 0) AS m3_per_unit
+            FROM customer_order WHERE brand=? AND temp_requirement=? AND units > 0 AND status <> 'cancelled'
+            """, rs -> {
+            if (!rs.next() || rs.getLong("orders") == 0 || rs.getBigDecimal("kg_per_unit") == null) return java.util.Optional.<Footprint>empty();
+            return java.util.Optional.of(new Footprint(rs.getLong("orders"), rs.getBigDecimal("kg_per_unit"), rs.getBigDecimal("m3_per_unit")));
+        }, brand, tempRequirement);
+    }
+
     public boolean markPlanned(long id,int expectedVersion,java.time.Instant at) {
         return db.update("UPDATE customer_order SET status='planned',version=version+1,updated_at=? WHERE id=? AND status IN ('confirmed','deferred') AND version=?",
             java.sql.Timestamp.from(at),id,expectedVersion)==1;

@@ -4,13 +4,18 @@ import type { components } from '../../generated/api'
 
 type Schema = components['schemas']
 /** The API serialises every field (null when absent); springdoc marks record fields optional. */
-type Present<T> = T extends (infer U)[] ? Present<U>[]
+export type Present<T> = T extends (infer U)[] ? Present<U>[]
   : T extends object ? { [K in keyof T]-?: Present<NonNullable<T[K]>> | Extract<T[K], null> } : T
 export type DeliveryRow = Present<Schema['ReceiptDeliveryRow']>
 export type DeliveryDetail = Present<Schema['ReceiptDeliveryDetail']>
 export type Discrepancy = Present<Schema['ReceiptDiscrepancy']>
 export type DisputeKind = Schema['ReceiptDisputeRequest']['kind']
 export type Decision = Schema['ReceiptDecisionRequest']['decision']
+export type StoreHome = Present<Schema['StoreHome']>
+export type StoreOrderBoard = Present<Schema['StoreOrderBoard']>
+export type StoreOrderRow = Present<Schema['StoreOrderRow']>
+export type OrderGroup = 'ALL' | 'SUBMITTED' | 'PLANNED' | 'IN_DELIVERY' | 'DELIVERED' | 'ISSUE' | 'DEFERRED'
+export type StoreNotification = Present<Schema['StoreNotification']>
 export type Phase = 'PENDING' | 'IN_DELIVERY' | 'DELIVERED'
 
 /** Keeps the server's code and message for the screens. */
@@ -25,6 +30,48 @@ export class ReceiptRequestError extends Error {
     this.code = body.code
     this.traceId = body.traceId
   }
+}
+
+export function useStoreHome() {
+  return useQuery({
+    queryKey: ['store', 'home'],
+    retry: false,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/store/home')
+      if (!data) throw new ReceiptRequestError(response, error, 'Your home summary could not be loaded.')
+      return data as StoreHome
+    },
+  })
+}
+
+export function useStoreOrderBoard(query: { group: OrderGroup; q: string; page: number; size?: number }) {
+  return useQuery({
+    queryKey: ['store', 'order-board', query],
+    retry: false,
+    refetchInterval: 30_000,
+    placeholderData: previous => previous,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/store/order-board', {
+        params: { query: { group: query.group, q: query.q || undefined, page: query.page, size: query.size ?? 20 } },
+      })
+      if (!data) throw new ReceiptRequestError(response, error, 'Your orders could not be loaded.')
+      return data as StoreOrderBoard
+    },
+  })
+}
+
+export function useStoreNotifications(limit = 30) {
+  return useQuery({
+    queryKey: ['store', 'notifications', limit],
+    retry: false,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/store/notifications', { params: { query: { limit } } })
+      if (!data) throw new ReceiptRequestError(response, error, 'Your updates could not be loaded.')
+      return data as StoreNotification[]
+    },
+  })
 }
 
 export function useStoreDeliveries() {

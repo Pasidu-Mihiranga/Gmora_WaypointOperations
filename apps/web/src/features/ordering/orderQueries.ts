@@ -1,5 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { api, apiReadError } from '../../lib/apiClient'
+import type { components } from '../../generated/api'
+import type { Present } from '../receipt/receiptQueries'
+
+/** A store order as the API serialises it: every field present, null when absent. */
+export type StoreOrder = Present<components['schemas']['CustomerOrder']>
 
 /** Read every selected ID; a table page is never the complete selection. */
 export async function loadSelectedPlanningOrders(ids: number[], date: string, depot: string) {
@@ -92,6 +97,21 @@ export function useStoreCutoff() {
     },
     retry: false,
     refetchInterval: 30_000,
+  })
+}
+
+/** Weight and volume the server works out from past orders for the units entered. Null figures mean there is no history. */
+export function useOrderEstimate(temp: string, units: number | null) {
+  return useQuery({
+    queryKey: ['store', 'order-estimate', temp, units],
+    enabled: units != null && Number.isInteger(units) && units >= 1 && units <= 100_000,
+    retry: false,
+    placeholderData: previous => previous,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/store/order-estimate', { params: { query: { temp, units: units! } } })
+      if (error || !data) throw apiReadError(response, 'The estimate could not be loaded')
+      return data
+    },
   })
 }
 

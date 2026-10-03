@@ -50,7 +50,7 @@ public class OrderCommandService {
         }
         String temp = normalizeTemp(tempRequirement);
         Outlet outlet = reference.outlet(user, user.outletId());
-        if ("chilled".equals(temp) && !"Fresh".equals(outlet.brand())) {
+        if (!OrderRules.mayOrder(outlet.brand(), temp)) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "CHILLED_FRESH_ONLY",
                 "Only Fresh outlets may place chilled orders");
         }
