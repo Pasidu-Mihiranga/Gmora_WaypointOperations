@@ -38,6 +38,7 @@ for (const account of accounts) {
       await expect(page).toHaveURL(new RegExp(`${account.path}$`))
     }
     const reference = await page.request.get(`${apiBase}/api/v1/reference/summary`)
+    expect(reference.status()).toBe(['DISPATCHER', 'STORE_MANAGER'].includes(account.key) ? 200 : 403)
     if (['LOADER', 'DRIVER'].includes(account.key)) {
       await page.goto(`${account.path}/profile`)
       await page.getByRole('button', { name: /log\s*out|sign\s*out/i }).click()
