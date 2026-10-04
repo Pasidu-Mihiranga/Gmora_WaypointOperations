@@ -4,6 +4,12 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Capacity decision page made clear
+
+- Rebuilt the Capacity decision screen in the structure of the Figma frame (`372:8035`): a short "how to use this page" banner, label/value rows for the forecast snapshot and the review checklist, and a plain "not available yet" action note. The old four-column grid wrapped values awkwardly ("187 m³ (Daily figure unavailable until…)").
+- All values still come from the demand forecast API. No capacity verdict, "hire trucks" advice or route-limit number was added, because the API provides none. Added a note when the order history is old, and fixed "1 vehicles" wording on both forecast pages.
+- Files: `features/forecast/CapacityPages.tsx`, `forecast.css`, `CapacityPages.test.tsx`. Verified with the forecast tests, type-check, lint and a rebuilt-stack screenshot.
+
 ## 2026-10-04 — Forecast hard-coded values audit
 
 - Audited the forecast API and screens for literals. Moved four business rules out of Java constants into `app.forecast.*` settings (`application.yml`, env-overridable): recorded weeks shown beside the projection (6), largest horizon (26), small-volume threshold (100 m³), and the weeks of lag before history counts as old (1).

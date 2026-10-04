@@ -11,6 +11,7 @@ type Week = DemandForecast['weeks'][number]
 /** The API owns the figures; these helpers only format its values and dates. */
 const m3 = (value: number | null | undefined) =>
   value == null ? '—' : `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })} m³`
+const vehicles = (count: number) => `${count} ${count === 1 ? 'vehicle' : 'vehicles'}`
 const weekLabel = (week: Week) => `${week.isoYear} W${String(week.isoWeek).padStart(2, '0')}`
 /** ISO weeks start on Monday; the date makes "W27" readable without knowing the week numbering. */
 const weekStart = (week: Week) => {
@@ -152,9 +153,9 @@ export function CapacityForecastPage() {
 
       <section className="forecast-metrics" aria-label="Capacity and demand">
         <MetricCard label="Fleet volume capacity" value={m3(data.capacity.volumeCapM3)}
-          caption={`${data.capacity.vehicles} vehicles · one trip each`} />
+          caption={`${vehicles(data.capacity.vehicles)} · one trip each`} />
         <MetricCard label="Refrigerated capacity" value={m3(data.capacity.reeferVolumeCapM3)}
-          caption={`${data.capacity.reeferVehicles} vehicles · one trip each`} />
+          caption={`${vehicles(data.capacity.reeferVehicles)} · one trip each`} />
         <MetricCard label="Estimated weekly demand" value={m3(firstProjected?.forecastTotalM3)} badge={estimateBadge}
           caption={firstProjected ? `${weekLabel(firstProjected)} · from ${weekStart(firstProjected)}` : 'No estimate available'} />
         <MetricCard label="Estimated chilled demand" value={m3(firstProjected?.forecastChilledM3)} badge={estimateBadge}
@@ -241,6 +242,11 @@ export function CapacityForecastPage() {
   </>
 }
 
+/** Figma label/value row: a quiet label on the left, the value on the right. */
+function FactRow({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="decision-row"><span className="decision-label">{label}</span><strong className="decision-value">{children}</strong></div>
+}
+
 export function CapacityDecisionPage() {
   const scope = useDispatcherScope()
   const forecast = useDemandForecast(scope.depot)
@@ -248,45 +254,59 @@ export function CapacityDecisionPage() {
   const projected = (data?.weeks ?? []).filter(week => !week.observed)
   const peak = projected.reduce<Week | null>((best, week) =>
     best == null || Number(week.forecastChilledM3 ?? 0) > Number(best.forecastChilledM3 ?? 0) ? week : best, null)
+  const hasEstimate = data != null && peak?.forecastChilledM3 != null
+  const hasDaily = peak?.forecastTotalPerDayM3 != null && peak.forecastChilledPerDayM3 != null
 
   return <>
     <PageHeader title="Capacity decision"
-      subtitle={data ? `${data.depot} · from the advisory demand outlook` : 'Review the demand outlook before recording a fleet decision.'} />
+      subtitle={data && peak ? `${data.depot} · week of ${weekStart(peak)} · from the demand outlook`
+        : 'Review the demand outlook before recording a fleet decision.'} />
 
     {forecast.isError && <ErrorState error={forecast.error} message="Demand forecast could not be loaded."
       onRetry={() => void forecast.refetch()} />}
     {scope.depot && forecast.isPending && <LoadingState label="Loading capacity review" />}
-
     {!scope.depot && <UnavailablePanel title="Forecast snapshot"
       description="Choose a depot in the workspace header to see its demand outlook." />}
 
-    {data && peak?.forecastChilledM3 != null
-      ? <Card>
-          <h2 className="text-heading-s">Forecast snapshot</h2>
-          <p className="lo-sub">This is an order-volume estimate from history. It is not a capacity verdict.</p>
-          <dl className="detail-grid">
-            <div><dt>Projected chilled week</dt>
-              <dd>{weekLabel(peak)} · {m3(peak.forecastChilledM3)} ({perDay(peak.forecastChilledPerDayM3)})</dd></div>
-            <div><dt>Total volume that week</dt>
-              <dd>{m3(peak.forecastTotalM3)} ({perDay(peak.forecastTotalPerDayM3)})</dd></div>
-            <div><dt>Registered fleet space</dt>
-              <dd>{m3(data.capacity.volumeCapM3)} across {data.capacity.vehicles} vehicles, one trip each</dd></div>
-            <div><dt>Registered refrigerated space</dt>
-              <dd>{m3(data.capacity.reeferVolumeCapM3)} across {data.capacity.reeferVehicles} vehicles</dd></div>
-          </dl>
-          <Link className="table-link" to="/dispatcher/forecast">Back to the demand outlook</Link>
-        </Card>
-      : scope.depot ? <UnavailablePanel title="Forecast snapshot"
-          description="A demand outlook is needed first. Supply the historical deliveries file to enable it." /> : null}
+    {data && <div className="decision-stack">
+      <section className="forecast-intro" aria-label="How to use this page">
+        <h2 className="text-heading-s">Compare the estimate with fleet space</h2>
+        <p>This page puts the estimated weekly demand next to the vehicles registered at this depot.
+          It is a guide, not a capacity verdict. Confirmed orders and the planning checks decide the real trips.</p>
+      </section>
 
-    <Card><h2 className="text-heading-s">What the dispatcher should review</h2><dl className="detail-grid">
-      <div><dt>Weight and volume</dt><dd>Use both limits for every planned vehicle.</dd></div>
-      <div><dt>Temperature</dt><dd>Use compatible vehicles for each order.</dd></div>
-      <div><dt>Fuel and route count</dt><dd>Check the weekly quota and permitted trips.</dd></div>
-      <div><dt>People and depot</dt><dd>Check driver cover and depot allocation.</dd></div>
-    </dl></Card>
+      {hasEstimate && peak
+        ? <Card aria-label="Forecast snapshot">
+            <h2 className="decision-heading">Forecast snapshot · from past orders</h2>
+            <FactRow label="Estimated week">{weekStart(peak)} ({weekLabel(peak)})</FactRow>
+            <FactRow label="Total volume">{m3(peak.forecastTotalM3)} for the week</FactRow>
+            <FactRow label="Chilled volume">{m3(peak.forecastChilledM3)} for the week</FactRow>
+            <FactRow label="Per operating day">{hasDaily
+              ? `${m3(peak.forecastTotalPerDayM3)} total · ${m3(peak.forecastChilledPerDayM3)} chilled`
+              : 'Not available until operating days are recorded'}</FactRow>
+            <FactRow label="Registered fleet space">{m3(data.capacity.volumeCapM3)} · {vehicles(data.capacity.vehicles)}, one trip each</FactRow>
+            <FactRow label="Registered refrigerated space">{m3(data.capacity.reeferVolumeCapM3)} · {vehicles(data.capacity.reeferVehicles)}, one trip each</FactRow>
+            {data.historyStale && <FactRow label="Order history">
+              Latest recorded week {recordedWeek(data)} · {data.weeksSinceLastObservation} weeks before this run</FactRow>}
+            <Link className="table-link" to="/dispatcher/forecast">Back to the demand outlook →</Link>
+          </Card>
+        : <UnavailablePanel title="Forecast snapshot"
+            description="A demand outlook is needed first. Supply the historical deliveries file to enable it." />}
 
-    <UnavailablePanel title="Proposed action"
-      description="Recording a fleet decision against this outlook is not available yet. Use confirmed orders and the planning validator before making a vehicle commitment." />
+      <Card aria-label="What the dispatcher should review">
+        <h2 className="decision-heading">What the dispatcher should review</h2>
+        <FactRow label="Weight and volume">Use both limits for every planned vehicle</FactRow>
+        <FactRow label="Temperature">Use compatible vehicles for each order</FactRow>
+        <FactRow label="Fuel and route count">Check the weekly quota and permitted trips</FactRow>
+        <FactRow label="People and depot">Check driver cover and depot allocation</FactRow>
+      </Card>
+
+      <section className="forecast-freshness decision-action" aria-label="Proposed action">
+        <h2 className="text-heading-s">Proposed action · not available yet</h2>
+        <p>Recording a fleet decision against this outlook is not available yet.
+          Use confirmed orders and the planning validator before making a vehicle commitment.</p>
+        <Link className="table-link" to="/dispatcher">Return to dashboard →</Link>
+      </section>
+    </div>}
   </>
 }

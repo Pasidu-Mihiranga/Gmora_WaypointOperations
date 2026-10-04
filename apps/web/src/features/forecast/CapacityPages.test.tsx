@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
-import { CapacityForecastPage } from './CapacityPages'
+import { CapacityDecisionPage, CapacityForecastPage } from './CapacityPages'
 
 const syntheticForecast = {
   depot: 'Synthetic depot', method: 'moving_average', methodVersion: '13w.1', windowWeeks: 13,
@@ -51,5 +51,28 @@ describe('dispatcher demand outlook', () => {
     expect(screen.getByText('Refresh order history')).toBeVisible()
     expect(screen.getByText('Treat small brands with care')).toBeVisible()
     expect(screen.queryByText('moving_average')).not.toBeInTheDocument()
+  })
+
+  it('lays the decision page out as plain label and value rows without inventing a verdict', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(syntheticForecast), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    })))
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={['/dispatcher/capacity-decision']}>
+        <Routes><Route element={<Outlet context={{ depot: 'Synthetic depot' }} />}>
+          <Route path="/dispatcher/capacity-decision" element={<CapacityDecisionPage />} />
+        </Route></Routes>
+      </MemoryRouter>
+    </QueryClientProvider>)
+
+    const snapshot = await screen.findByLabelText('Forecast snapshot')
+    expect(within(snapshot).getByText('51 m³ for the week')).toBeVisible()
+    expect(within(snapshot).getByText('13 m³ for the week')).toBeVisible()
+    expect(within(snapshot).getByText('Not available until operating days are recorded')).toBeVisible()
+    expect(within(snapshot).getByText(/90 m³ · 3 vehicles, one trip each/)).toBeVisible()
+    expect(within(snapshot).getByText(/20 m³ · 1 vehicle, one trip each/)).toBeVisible()
+    expect(within(snapshot).getByText(/Latest recorded week 2026 W07 · 19 weeks before this run/)).toBeVisible()
+    expect(screen.getByText('Proposed action · not available yet')).toBeVisible()
+    expect(screen.queryByText(/over capacity/i)).not.toBeInTheDocument()
   })
 })
