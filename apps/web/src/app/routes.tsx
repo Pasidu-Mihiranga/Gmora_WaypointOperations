@@ -1,12 +1,11 @@
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
-import { Button, ErrorState, ForbiddenState, LoadingState } from '../components'
+import { Button, EmptyState, ErrorState, ForbiddenState, LoadingState, PageHeader } from '../components'
 import { DispatcherHome } from './DispatcherHome'
 import { DeferredOrdersPage } from '../features/planning/PlanningPendingPages'
 import { ExceptionsPage } from '../features/planning/ExceptionsPage'
 import { LiveOperationsPage } from '../features/live-ops/LiveOperationsPage'
 import { CapacityForecastPage, CapacityDecisionPage } from '../features/forecast/CapacityPages'
 import { DispatcherProfilePage } from '../features/auth/DispatcherProfilePage'
-import { PlaceholderPage } from './PlaceholderPage'
 import { RoleShell } from './RoleShell'
 import { roles } from './roles'
 import { LoginPage } from '../features/auth/LoginPage'
@@ -74,7 +73,12 @@ function pageElement(role: RoleConfig, page: RolePage) {
     if (page.to === '/dispatcher/capacity-decision') return <CapacityDecisionPage />
     if (page.to === '/dispatcher/settings') return <DispatcherProfilePage />
   }
-  return <PlaceholderPage page={page} />
+  return (
+    <>
+      <PageHeader title={page.title} subtitle={page.description} />
+      <EmptyState title="Not available yet" description="This screen has no page mapped to it yet." />
+    </>
+  )
 }
 
 function roleRoutes(role: RoleConfig) {

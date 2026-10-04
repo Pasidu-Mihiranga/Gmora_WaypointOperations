@@ -247,6 +247,62 @@ corepack pnpm install && corepack pnpm --dir apps/web dev
 
 ---
 
+## Judge walkthrough
+
+One order reference, `ORD-1163` (Fresh, chilled, outlet `OUT001`), travels through all four roles
+in this order. It is the same sequence `tests/e2e/lifecycle.spec.ts` runs against the live stack.
+Sign in at `/login` with the seeded accounts from the table above; the server routes you to the
+right workspace automatically.
+
+1. **Dispatcher** (`DSP-001`) — open **Planning**, review the confirmed-orders queue for the demo
+   operating date, allocate the outlet's order to a vehicle/trip, let the validator confirm the
+   twelve constraint rules (R1–R12) pass, then **Publish**. This freezes a versioned manifest and
+   hands the trip to the loader.
+2. **Store manager** (`STM-001`) — open **Orders**, find the order now showing status *Planned*.
+   (To start a fresh order instead: **Place Order → pick items → Review → Confirm** before the
+   16:00 cutoff banner.)
+3. **Loader** (`LDR-001`) — open **Home**, select the published trip, count each order against
+   the manifest and **Hand over**. If a line falls short, use **Report shortfall**; it opens a
+   dispatcher exception and holds the affected vehicle slot instead of departing silently.
+4. **Driver** (`DRV-001`) — open **Trip**, **Start** the handed-over trip, open the stop, and
+   **Deliver** with photo/signature/recipient proof (or **Report an issue** for a problem at the
+   door). Finish the trip from **Deliveries**.
+5. **Store manager** — open **Deliveries**, open the now-*Delivered* order, and either
+   **Confirm receipt** or, to see the dispute path, **Report an issue** against a line.
+6. **Dispatcher** — open **Exceptions**, find the resulting discrepancy (or the loading shortfall
+   from step 3), and **Decide** it. The resolution appears back on the store's **Issues** page.
+7. **Dispatcher** — open **Live Operations** to see the trip's state follow its stops in real
+   time, and **Forecast** for the ten-week advisory demand outlook (honest "unavailable" if
+   `Training Data/` is not mounted — see *Reference data foundation* below).
+
+To rehearse the driver's offline path specifically: put the browser offline (devtools → Network →
+Offline) before step 4's delivery action, complete it anyway, then go back online — the action
+replays through `/api/v1/driver/sync` and the **Sync status** screen shows it reconciled.
+
+## Significant departures from the Designathon submission
+
+The Figma prototype (linked in [`docs/waypoint-design-documentation.md`](docs/waypoint-design-documentation.md))
+assumed some data the competition dataset does not actually provide. Each departure below is a
+deliberate, owner-approved decision recorded in [`docs/WORK_LOG.md`](docs/WORK_LOG.md), not an
+oversight:
+
+| Design showed | What ships | Why |
+|---|---|---|
+| Rs prices and order totals, "this month spend" | No prices anywhere; a synthetic catalog sizes items by relative size only | The dataset's 92,307 historical orders carry `order_units`, weight and volume — never a price. Inventing one would be fabricated data under `AGENTS.md` §1 |
+| Editable phone number, help & support, contact-dispatcher channel | Not built; profile is read-only from the account API | No storage or messaging channel exists for these yet |
+| "± 10 min" ETA band on delivery windows | The planned window and the actual planned arrival are shown as two separate facts, no band | No model produces an ETA uncertainty band; showing one would look invented |
+| Ten-week forecast always populated | An honest "unavailable" state when `Training Data/deliveries_train.csv` is not mounted | The advisory forecast is derived from Datathon training data, which is optional input, not General Data |
+| Over-capacity badges on the forecast screens | Not shown | The API returns no capacity verdict for a given week; adding one would be a UI-invented number |
+| Notification unread/read state | Notifications list is always "all", newest first | No read-state column exists yet |
+
+## AI tool disclosure
+
+See [`docs/AI_DISCLOSURE.md`](docs/AI_DISCLOSURE.md) for which tools were used at the design and
+engineering stages, what the human team decided, and how AI-assisted output was verified before
+being accepted.
+
+---
+
 ## Testing
 
 ```bash
@@ -325,8 +381,11 @@ CI fails if `apps/api/openapi.json` or `apps/web/src/generated/` is out of date.
 
 - [Implementation plan](docs/IMPLEMENTATION_PLAN.md) — phase-by-phase checklist, priorities, exit gates
 - [Technical reference](docs/TECHNICAL_REFERENCE.md) — architecture, data model, planning engine, offline design
+- [Architecture diagram and data model](docs/architecture/) — current component/deployment diagram, request flow and schema, reflecting what shipped
+- [AI tool disclosure](docs/AI_DISCLOSURE.md) — design and engineering tools, human decisions, verification
 - [Design documentation](docs/waypoint-design-documentation.md) — Designathon submission
 - [Round 2 requirements audit](docs/ROUND2_REQUIREMENTS_AUDIT.md) — booklet scoring, verified phase status, current gaps and execution gates
+- [Round 2 final completion plan](docs/ROUND2_FINAL_COMPLETION_PLAN.md) — submission blockers and remaining work, priority-ordered
 
 ## Reference data foundation (Phase 3)
 
