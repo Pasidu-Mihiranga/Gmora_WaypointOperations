@@ -4,6 +4,30 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-05 — Recreate README with complete screenshots and multi-role user flow diagrams
+
+- Recreated the root `README.md` to provide a comprehensive, professional presentation of the Waypoint Operations platform.
+- Integrated all 10 system screenshots from `screenshots/` covering all four operational roles:
+  - Authentication & RBAC login gateway (`screenshots/login.jpg`)
+  - Dispatcher Command Dashboard (`screenshots/dispatcher-dashboard.jpg`)
+  - Dispatcher Order Queue & Cutoff Review (`screenshots/dispatcher-orders.jpg`)
+  - Dispatcher Constraint-Checked Planning Engine with R1–R12 validation (`screenshots/dispatcher-planning.jpg`)
+  - Dispatcher Live Fleet & Trip Operations (`screenshots/dispatcher-live-operations.jpg`)
+  - Dispatcher Operational Exceptions & Dispute Resolution Queue (`screenshots/dispatcher-exceptions.jpg`)
+  - Dispatcher Advisory Demand Forecasting (`screenshots/dispatcher-forecast.jpg`)
+  - Store Manager Multi-Brand Ordering, Catalog & Delivery Receipt (`screenshots/store-home.jpg`)
+  - Warehouse Loader Manifest Verification, Shortfall Holds & Departure Handover (`screenshots/loader-home.jpg`)
+  - Field Driver Mobile PWA with Itinerary, Offline Outbox & Proof of Delivery (`screenshots/driver-home.jpg`)
+- Added 3 interactive Mermaid architecture and lifecycle diagrams:
+  - Full multi-role end-to-end operational workflow diagram (Store Manager -> Dispatcher -> Loader -> Driver -> Store Receipt -> Exception Triage).
+  - Order and Trip State Transition Model (`DRAFT` to `RESOLVED`/`RECEIPT_CONFIRMED`).
+  - Field Driver Offline Outbox & Idempotent Synchronization sequence diagram.
+- Documented all 12 hard operational constraints (R1–R12) with engine rule codes and enforcement logic.
+- Configured direct public demonstration links: live HTTPS deployment at `https://techtrithalon.duckdns.org` and YouTube walkthrough demo at `https://youtu.be/PAZZ5sISb48`.
+- Included canonical evaluator walkthrough journey, quick demo role accounts, and local setup guide.
+- Maintained strict data integrity compliance (no hardcoded/fake prices; explicit departures from early designathon wireframes).
+- No git commits created per user instruction.
+
 ## 2026-10-04 — CI test scoping and frontend UI cleanup
 
 - Scoped the CI `Authentication browser journeys` Playwright execution to `tests/e2e/auth.spec.ts` so it specifically validates authentication without running the complete 15-spec operational suite against the dirty smoke database.
