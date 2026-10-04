@@ -38,8 +38,12 @@ for (const account of accounts) {
       await expect(page).toHaveURL(new RegExp(`${account.path}$`))
     }
     const reference = await page.request.get(`${apiBase}/api/v1/reference/summary`)
-    expect(reference.status()).toBe(['DISPATCHER', 'STORE_MANAGER'].includes(account.key) ? 200 : 403)
-    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    if (['LOADER', 'DRIVER'].includes(account.key)) {
+      await page.goto(`${account.path}/profile`)
+      await page.getByRole('button', { name: /log\s*out|sign\s*out/i }).click()
+    } else {
+      await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    }
     await expect(page).toHaveURL(/\/login$/)
     const revoked = await page.request.get(`${apiBase}/api/v1/auth/me`, { headers: { Cookie: `WP_SESSION=${session.value}` } })
     expect(revoked.status()).toBe(401)

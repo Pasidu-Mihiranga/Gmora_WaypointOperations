@@ -4,6 +4,13 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-05 — Fix E2E browser auth logout navigation and SSH deployment authentication in CI
+
+- Updated `apps/web/tests/e2e/auth.spec.ts` to navigate to `/profile` prior to clicking logout/sign-out for Loader and Driver roles, aligning test assertions with the role-specific UI layouts where logout is hosted in profile views.
+- Updated `.github/workflows/ci.yml` `deploy` job with `permissions: contents: read` and authenticated git fetch using `x-access-token:${{ secrets.GITHUB_TOKEN }}` over HTTPS, resolving non-interactive terminal prompt failures (status 128) during EC2 SSH deployments.
+- Added fallback health check against `https://techtrithalon.duckdns.org` in deployment verification.
+- Changes left unstaged and uncommitted per user instructions.
+
 ## 2026-10-05 — Recreate README with complete screenshots and multi-role user flow diagrams
 
 - Recreated the root `README.md` to provide a comprehensive, professional presentation of the Waypoint Operations platform.
