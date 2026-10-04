@@ -148,7 +148,7 @@ dataset/data/General Data/district_travel.csv
 dataset/data/General Data/service_allowance.csv
 ```
 
-The API imports these five files on startup. The import is **idempotent**: re-running it creates no duplicates. It is also **atomic**: it checks the row counts (120 outlets, 60 vehicles, 910 calendar days, 12 districts, 9 allowances) and rolls back completely if they don't match. Training and test files are never loaded into the operational database.
+The API imports these five files on startup. The import is **idempotent**: re-running it creates no duplicates. It is also **atomic**: it checks the row counts (120 outlets, 60 vehicles, 910 calendar days, 12 districts, 9 allowances) and rolls back completely if they don't match. No individual training or test record is ever loaded into the operational database.
 
 Phase 3A also mounts local peak-day files (never committed) from `dataset/data/Test Data/`:
 
@@ -158,6 +158,18 @@ dataset/data/Test Data/task2b_peak_day_fleet.csv
 ```
 
 Those seed 85 confirmed Peliyagoda orders and 38 fleet availability rows for `DEMO_OPERATING_DATE`.
+
+The advisory demand forecast mounts one more local file (never committed), from `dataset/data/Training Data/`:
+
+```
+dataset/data/Training Data/deliveries_train.csv
+```
+
+Only a weekly aggregate is stored — around 666 rows of depot, brand, ISO week and volume, with no
+outlet, order or vehicle identifier — and it is read nowhere but the Forecast screen. Leave the file
+out and that screen shows an honest unavailable state; nothing else is affected. Override the
+location with `FORECAST_DATA_HOST_DIR`, or switch the aggregation off with
+`FORECAST_SEED_ON_STARTUP=false`.
 
 ### 2. Run the full stack
 

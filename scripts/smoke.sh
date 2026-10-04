@@ -170,6 +170,31 @@ echo "$fleet_overview" | python3 -c 'import json,sys; o=json.load(sys.stdin); as
 assert_failure 404 NOT_FOUND -b "$cookies" "$API/api/v1/dispatcher/fleet/overview?date=$demo_date&depot=UNKNOWN"
 assert_failure 401 UNAUTHENTICATED "$API/api/v1/dispatcher/fleet/overview?date=$demo_date&depot=$depot"
 
+# Advisory demand forecast. Weekly rows exist only when the historical deliveries file is mounted,
+# so an empty outlook is a pass: the screen then shows an honest unavailable state.
+forecast=$(curl -fsS -b "$cookies" "$API/api/v1/dispatcher/forecast/demand?depot=$depot&horizonWeeks=10")
+echo "$forecast" | python3 -c '
+import json, sys
+o = json.load(sys.stdin)
+assert o["advisory"] is True, "forecast must declare itself advisory"
+assert o["method"] and o["methodVersion"], "forecast must name its method and version"
+assert o["capacity"]["vehicles"] >= 0 and o["capacity"]["volumeCapM3"] is not None, "capacity context missing"
+observed = [w for w in o["weeks"] if w["observed"]]
+projected = [w for w in o["weeks"] if not w["observed"]]
+# Observed weeks never carry a forecast and projected weeks never carry an observation.
+assert all(w["forecastTotalM3"] is None for w in observed), "observed week carried a forecast"
+assert all(w["observedTotalM3"] is None for w in projected), "projected week carried an observation"
+assert all(0 < w["operatingDays"] <= 7 for w in o["weeks"]), "bad operating-day count"
+for s in o["series"]:
+    if s["confidence"] == "none":
+        assert s["forecastTotalM3"] is None, "unavailable series published a value"
+    elif not s["chilledApplicable"]:
+        assert float(s["forecastChilledM3"]) == 0.0, "brand without chilled demand got a chilled value"
+' || fail "forecast response is not internally consistent: $forecast"
+assert_failure 400 INVALID_HORIZON -b "$cookies" "$API/api/v1/dispatcher/forecast/demand?depot=$depot&horizonWeeks=0"
+assert_failure 404 NOT_FOUND -b "$cookies" "$API/api/v1/dispatcher/forecast/demand?depot=UNKNOWN"
+assert_failure 401 UNAUTHENTICATED "$API/api/v1/dispatcher/forecast/demand?depot=$depot"
+
 assert_failure 403 FORBIDDEN -b "$cookies" -H 'Content-Type: application/json' -H 'X-Requested-With: Waypoint' \
   -d '{"tempRequirement":"ambient","units":1,"weightKg":10,"volumeM3":0.1}' "$API/api/v1/store/orders"
 assert_failure 404 NOT_FOUND -b "$cookies" "$API/api/v1/dispatcher/orders/999999999"
