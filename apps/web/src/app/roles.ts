@@ -7,6 +7,7 @@ export type RoleKey = 'dispatcher' | 'store' | 'loader' | 'driver'
 export interface RolePage extends NavEntry {
   title: string
   description: string
+  phase?: string
 }
 
 export interface RoleConfig {
@@ -21,14 +22,14 @@ export const roles: Record<RoleKey, RoleConfig> = {
   dispatcher: {
     key: 'dispatcher', label: 'Dispatcher', basePath: '/dispatcher',
     pages: [
-      { to: '/dispatcher', label: 'Home', icon: House, end: true, title: 'Dashboard', description: 'Planning status and items that need attention.' },
-      { to: '/dispatcher/orders', label: 'Orders', icon: ClipboardList, title: 'Orders', description: 'All confirmed orders for the planning day.' },
-      { to: '/dispatcher/planning', label: 'Planning', icon: Route, title: 'Planning', description: 'Confirmed orders, plan generation, allocation review and publication.' },
-      { to: '/dispatcher/live-operations', label: 'Live Operations', icon: Activity, title: 'Live Operations', description: 'Trips in progress and problems on the road.' },
-      { to: '/dispatcher/forecast', label: 'Forecast', icon: TrendingUp, title: 'Capacity forecast', description: 'Advisory demand outlook from observed history.' },
-      { to: '/dispatcher/fleet', label: 'Fleet', icon: Truck, title: 'Fleet', description: 'Vehicles, availability and workshop status.' },
-      { to: '/dispatcher/exceptions', label: 'Exceptions', icon: TriangleAlert, title: 'Exceptions', description: 'Loading, delivery, offline and receipt problems waiting for you.' },
-      { to: '/dispatcher/deferred-orders', label: 'Deferred Orders', icon: History, title: 'Deferred orders', description: 'Orders moved to a later run, with the reason.' },
+      { to: '/dispatcher', label: 'Home', icon: House, end: true, title: 'Dashboard', description: 'Planning status and items that need attention.', phase: 'Phase 3A' },
+      { to: '/dispatcher/orders', label: 'Orders', icon: ClipboardList, title: 'Orders', description: 'All confirmed orders for the planning day.', phase: 'Phase 3A' },
+      { to: '/dispatcher/planning', label: 'Planning', icon: Route, title: 'Planning', description: 'Interactive multi-step delivery planning and trip optimisation.' },
+      { to: '/dispatcher/live-operations', label: 'Live Operations', icon: Activity, title: 'Live Operations', description: 'Trips in progress and problems on the road.', phase: 'Phase 16' },
+      { to: '/dispatcher/forecast', label: 'Forecast', icon: TrendingUp, title: 'Capacity forecast', description: 'Advisory demand outlook from observed history.', phase: 'Phase 17' },
+      { to: '/dispatcher/fleet', label: 'Fleet', icon: Truck, title: 'Fleet', description: 'Vehicles, availability and workshop status.', phase: 'Phase 3A' },
+      { to: '/dispatcher/exceptions', label: 'Exceptions', icon: TriangleAlert, title: 'Exceptions', description: 'Loading, delivery, offline and receipt problems waiting for you.', phase: 'Phase 10 / 16' },
+      { to: '/dispatcher/deferred-orders', label: 'Deferred Orders', icon: History, title: 'Deferred orders', description: 'Orders moved to a later run, with the reason.', phase: 'Phase 8' },
     ],
     footerPages: [
       { to: '/dispatcher/settings', label: 'Settings', icon: Settings, title: 'Settings', description: 'Your profile and preferences.' },

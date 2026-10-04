@@ -22,7 +22,7 @@ export function DispatcherProfilePage() {
         <UnavailablePanel title="Profile and notification preferences" description="Preference editing and contact details are not provided by the account API yet." />
         <Button variant="secondary" onClick={() => void logout()}>Log out</Button>
       </div>
-      <UnavailablePanel title="Today's activity" description="Planning and exception activity metrics are not provided by the account API yet." />
+      <UnavailablePanel title="Today's activity" description="Individual dispatcher activity logs and metrics will be recorded in future updates." />
     </div>
   </>
 }

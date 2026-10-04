@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Badge, Card, EmptyState, ErrorState, LoadingState, MetricCard, PageHeader } from '../components'
 import { useDispatcherDashboard } from '../features/ordering/orderQueries'
-import { useSystemHealth } from '../features/shell/useSystemHealth'
 import { useDispatcherScope } from '../features/shell/useDispatcherScope'
 import { useExceptionQueue } from '../features/planning/exceptionQueries'
 import { useDeferralRun } from '../features/planning/deferralQueries'
@@ -19,7 +18,6 @@ function metricCaption(metric: { available?: boolean; availableFromPhase?: strin
 export function DispatcherHome() {
   const scope = useDispatcherScope()
   const dashboard = useDispatcherDashboard(undefined, scope.depot)
-  const health = useSystemHealth()
   const runDate = dashboard.data?.date
   const exceptions = useExceptionQueue(runDate, scope.depot)
   const deferrals = useDeferralRun(runDate, scope.depot)
@@ -73,7 +71,7 @@ export function DispatcherHome() {
               ) : (
                 <EmptyState
                   title="Planning not started"
-                  description={`Progress is available in ${dashboard.data.planningProgress?.availableFromPhase ?? 'Phase 7'}.`}
+                  description="Create snapshots and candidate plans in the Planning workspace."
                 />
               )}
               <Link className="btn btn-primary btn-md" to="/dispatcher/planning">Go to Planning</Link>
@@ -81,12 +79,6 @@ export function DispatcherHome() {
           </div>
         </>
       )}
-      <Card>
-        <h2 className="text-heading-s">Services</h2>
-        {health.isError ? <ErrorState error={health.error} message="Service status could not be loaded." onRetry={() => void health.refetch()} /> : health.data
-          ? <p className="text-body-m">API: {health.data.status} · Planning service: {health.data.intelligence}</p>
-          : <p className="text-body-m">Checking…</p>}
-      </Card>
     </>
   )
 }

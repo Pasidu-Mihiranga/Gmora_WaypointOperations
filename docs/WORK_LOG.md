@@ -4,6 +4,17 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — CI test scoping and frontend UI cleanup
+
+- Scoped the CI `Authentication browser journeys` Playwright execution to `tests/e2e/auth.spec.ts` so it specifically validates authentication without running the complete 15-spec operational suite against the dirty smoke database.
+- Added `tabIndex={-1}` to demo quick-login role chips on `LoginPage.tsx` so standard browser keyboard tabbing navigates directly from `USER ID` to `PASSWORD` and `SUBMIT`.
+- Cleaned up Dispatcher dashboard (`DispatcherHome.tsx`): removed the technical/debug "Services: API: ok · Planning service: reachable" status card.
+- Cleaned up internal phase numbers across frontend screens:
+  - Reworded planning status on `DispatcherHome.tsx`.
+  - Replaced internal phase strings in `DispatcherProfilePage.tsx`, `roles.ts`, and `PlaceholderPage.tsx` with user-facing capability descriptions.
+  - Removed obsolete `PlanningPendingStage` component with internal phase markers from `PlanningStages.tsx`.
+  - Verified with `pnpm lint`, `pnpm typecheck`, and 170 passing Vitest unit/component tests.
+
 ## 2026-10-04 — Production Demo Data Seeding & 4-Role Verification on EC2
 
 - Seeded operational demonstration lifecycle onto EC2 instance (`https://techtrithalon.duckdns.org`) using `scripts/seed-operating-day.py`:
