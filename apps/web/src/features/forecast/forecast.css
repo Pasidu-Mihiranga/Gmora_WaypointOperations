@@ -1,59 +1,75 @@
-/* Capacity Forecast: weekly demand bars and the basis panel. */
-
+/* Demand outlook uses shared tokens and keeps recorded data distinct from estimates. */
+.forecast-intro,
+.forecast-freshness,
+.forecast-capacity-context {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-20);
+  margin-bottom: var(--space-20);
+}
+.forecast-intro { background: var(--color-brand-primary-soft); border-color: var(--color-brand-primary-border); }
+.forecast-freshness { background: var(--color-status-warning-soft); border-color: var(--color-status-warning); }
+.forecast-intro h2,
+.forecast-freshness p,
+.forecast-capacity-context p { margin: 0; }
+.forecast-intro p { margin: var(--space-8) 0 0; line-height: var(--font-body-m-line-height); }
+.forecast-freshness strong { color: var(--color-status-warning); }
+.forecast-freshness p { margin-top: var(--space-6); }
+.forecast-section-title { margin: 0 0 var(--space-12); font-size: var(--font-heading-s-size); }
+.forecast-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); }
+.forecast-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-20); margin: var(--space-24) 0; }
+.forecast-chart-card { min-width: 0; }
+.forecast-chart-card h2 { margin: 0; }
+.forecast-chart-card .lo-sub { margin: var(--space-8) 0 var(--space-16); }
 .forecast-chart { display: flex; flex-direction: column; gap: var(--space-12); }
-
-.forecast-bars {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  align-items: end;
-  gap: var(--space-4);
-  min-height: 180px;
-  padding-top: var(--space-16);
-  overflow-x: auto;
-}
-
-.forecast-bar { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); min-width: 0; }
-
-.forecast-bar-value { font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; }
-
-.forecast-bar-track { display: flex; align-items: flex-end; width: 100%; height: 120px; }
-
-.forecast-bar-fill {
-  width: 100%;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  background: var(--color-bg-muted);
-  min-height: 2px;
-}
-
-/* Observed weeks are solid; projected weeks are hatched, so the two are never confused. */
-.forecast-bar-fill.observed { background: var(--color-brand-primary); }
-
-.forecast-bar-fill.projected {
-  background: repeating-linear-gradient(
-    135deg,
-    var(--color-brand-primary-soft) 0 6px,
-    var(--color-brand-primary-border) 6px 12px
-  );
-}
-
-.forecast-bar-label { font-size: 11px; color: var(--color-text-tertiary); white-space: nowrap; }
-.forecast-bar-label.projected { color: var(--color-text-brand); font-weight: 600; }
-
-.forecast-legend { display: flex; flex-wrap: wrap; gap: var(--space-16); font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
+.forecast-legend { display: flex; flex-wrap: wrap; gap: var(--space-16); margin: 0; padding: 0; list-style: none; font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
 .forecast-legend-item { display: inline-flex; align-items: center; gap: var(--space-8); }
-.forecast-legend-swatch { width: 14px; height: 14px; border-radius: var(--radius-sm); }
+.forecast-legend-swatch { width: var(--space-16); height: var(--space-16); border-radius: var(--radius-sm); }
 .forecast-legend-swatch.observed { background: var(--color-brand-primary); }
-.forecast-legend-swatch.projected {
-  background: repeating-linear-gradient(
-    135deg,
-    var(--color-brand-primary-soft) 0 4px,
-    var(--color-brand-primary-border) 4px 8px
-  );
+.forecast-legend-swatch.projected,
+.forecast-bar-fill.projected {
+  background: repeating-linear-gradient(135deg,
+    var(--color-brand-primary-soft) 0 var(--space-6),
+    var(--color-brand-primary-border) var(--space-6) var(--space-12));
 }
-
-.forecast-advisory {
-  margin-top: var(--space-8);
-  font-size: var(--font-body-s-size);
-  color: var(--color-text-secondary);
+.forecast-bars { display: flex; align-items: flex-end; gap: var(--space-6); overflow-x: auto; padding-top: var(--space-16); }
+.forecast-bar-group { display: flex; align-items: flex-end; flex: 1 0 calc(var(--space-32) + var(--space-16)); min-width: 0; }
+.forecast-gap { align-self: stretch; display: flex; align-items: center; flex: 0 0 calc(var(--space-32) * 3); margin: 0 var(--space-8); padding-left: var(--space-8); border-left: 1px dashed var(--color-border-default); color: var(--color-text-secondary); font-size: var(--font-caption-size); line-height: var(--font-caption-line-height); }
+.forecast-bar { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); flex: 1; min-width: 0; }
+.forecast-bar-value { font-size: var(--font-caption-size); color: var(--color-text-secondary); white-space: nowrap; }
+.forecast-bar-track { display: flex; align-items: flex-end; width: 100%; height: calc(var(--space-32) * 4); border-bottom: 1px solid var(--color-border-default); }
+.forecast-bar-fill { width: 100%; border-radius: var(--radius-sm) var(--radius-sm) 0 0; min-height: var(--space-2); }
+.forecast-bar-fill.observed { background: var(--color-brand-primary); }
+.forecast-bar-label { min-height: var(--space-32); color: var(--color-text-tertiary); font-size: var(--font-caption-size); text-align: center; }
+.forecast-bar-label.projected { color: var(--color-text-brand); font-weight: var(--font-caption-medium-weight); }
+.forecast-chart-note { margin: 0; font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
+.forecast-brand-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); margin: var(--space-16) 0 0; padding: 0; list-style: none; }
+.forecast-brand-row { border-top: 1px solid var(--color-border-default); padding-top: var(--space-12); }
+.forecast-brand-heading { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.forecast-brand-row p { margin: var(--space-6) 0; }
+.forecast-brand-row details { color: var(--color-text-secondary); font-size: var(--font-body-s-size); }
+.forecast-brand-row summary { color: var(--color-text-brand); cursor: pointer; }
+.forecast-method-steps { display: grid; gap: var(--space-8); padding-left: var(--space-20); }
+.forecast-method-steps li { padding-left: var(--space-4); }
+.forecast-basis-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); margin: var(--space-16) 0; }
+.forecast-basis-facts p { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; }
+.forecast-basis-facts span { color: var(--color-text-secondary); }
+.forecast-range-title { margin: var(--space-20) 0 var(--space-12); font-size: var(--font-body-m-size); }
+.forecast-range-track { position: relative; height: var(--space-10); border-radius: var(--radius-full); background: var(--color-brand-primary-border); }
+.forecast-range-marker { position: absolute; top: 50%; width: var(--space-16); height: var(--space-16); border: var(--space-2) solid var(--color-bg-surface); border-radius: var(--radius-full); background: var(--color-text-brand); transform: translate(-50%, -50%); box-shadow: var(--shadow-elevation-1); }
+.forecast-range-labels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-8); margin-top: var(--space-8); font-size: var(--font-body-s-size); }
+.forecast-range-labels span { display: flex; flex-direction: column; }
+.forecast-range-labels span:nth-child(2) { text-align: center; }
+.forecast-range-labels span:last-child { text-align: right; }
+.forecast-range-labels small { color: var(--color-text-secondary); }
+.forecast-advisory { margin: var(--space-12) 0 0; font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
+.forecast-capacity-context { background: var(--color-bg-subtle); }
+.forecast-capacity-context .forecast-metrics { margin-top: var(--space-16); }
+@media (max-width: 1200px) {
+  .forecast-chart-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .forecast-metrics,
+  .forecast-brand-list,
+  .forecast-basis-facts { grid-template-columns: minmax(0, 1fr); }
 }

@@ -4,6 +4,12 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Recheck the local backend container
+
+- Rebuilt and started the existing API with `docker compose up --build -d api` on branch `audit/dispatcher-data-planning-ui` at `a2aa26f`. Docker reused the source and JAR build layers because backend files had not changed since the preceding build.
+- Confirmed the running container image digest equals `techtrithalon-api:latest` (`sha256:aae2fa9493911872339253a087e5fd344098153f391c5bbed0bfa9ac90ea3967`). `GET /actuator/health` returned HTTP 200 `UP`; `GET /v3/api-docs` returned HTTP 200 and included both dispatcher fleet overview and forecast demand paths.
+- Files touched: this work log only. The database volume was retained, and no operational records were reset.
+
 ## 2026-10-04 — Independent dispatcher audit validation
 
 - Reviewed the committed dispatcher home, orders, five planning steps, fleet overview, exceptions and deferred-orders wiring on `audit/dispatcher-data-planning-ui`. The branch was clean before this check; no backend contract or planning rule was changed.

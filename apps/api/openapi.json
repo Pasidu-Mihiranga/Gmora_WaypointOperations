@@ -444,6 +444,14 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "latestObservedIsoWeek" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "latestObservedIsoYear" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "method" : {
             "type" : "string"
           },
@@ -461,6 +469,10 @@
               "$ref" : "#/components/schemas/WeekRow"
             },
             "type" : "array"
+          },
+          "weeksSinceLastObservation" : {
+            "format" : "int32",
+            "type" : "integer"
           },
           "windowWeeks" : {
             "format" : "int32",

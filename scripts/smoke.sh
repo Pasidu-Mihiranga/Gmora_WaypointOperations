@@ -175,6 +175,8 @@ assert_failure 401 UNAUTHENTICATED "$API/api/v1/dispatcher/fleet/overview?date=$
 forecast=$(curl -fsS -b "$cookies" "$API/api/v1/dispatcher/forecast/demand?depot=$depot&horizonWeeks=10")
 echo "$forecast" | python3 -c '
 import json, sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 o = json.load(sys.stdin)
 assert o["advisory"] is True, "forecast must declare itself advisory"
 assert o["method"] and o["methodVersion"], "forecast must name its method and version"
@@ -184,7 +186,17 @@ projected = [w for w in o["weeks"] if not w["observed"]]
 # Observed weeks never carry a forecast and projected weeks never carry an observation.
 assert all(w["forecastTotalM3"] is None for w in observed), "observed week carried a forecast"
 assert all(w["observedTotalM3"] is None for w in projected), "projected week carried an observation"
-assert all(0 < w["operatingDays"] <= 7 for w in o["weeks"]), "bad operating-day count"
+assert all(0 < w["operatingDays"] <= 7 for w in observed), "bad observed operating-day count"
+assert all(0 <= w["operatingDays"] <= 7 for w in projected), "bad future operating-day count"
+assert all(w["operatingDays"] > 0 or w["forecastTotalPerDayM3"] is None for w in projected), "invented daily figure"
+if observed:
+    latest = max((w["isoYear"], w["isoWeek"]) for w in observed)
+    assert latest == (o["latestObservedIsoYear"], o["latestObservedIsoWeek"]), "history date mismatch"
+    assert o["weeksSinceLastObservation"] >= 0, "history lag missing"
+if projected:
+    now = datetime.fromisoformat(o["generatedAt"].replace("Z", "+00:00")).astimezone(ZoneInfo("Asia/Colombo"))
+    current = now.isocalendar()
+    assert all((w["isoYear"], w["isoWeek"]) > (current.year, current.week) for w in projected), "projection is in the past"
 for s in o["series"]:
     if s["confidence"] == "none":
         assert s["forecastTotalM3"] is None, "unavailable series published a value"

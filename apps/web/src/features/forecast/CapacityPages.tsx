@@ -7,53 +7,81 @@ import './forecast.css'
 
 type Week = DemandForecast['weeks'][number]
 
-/** Format a server number for display. No business value is derived here. */
+/** The API owns the figures; these helpers only format its values and dates. */
 const m3 = (value: number | null | undefined) =>
   value == null ? '—' : `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })} m³`
+const weekLabel = (week: Week) => `${week.isoYear} W${String(week.isoWeek).padStart(2, '0')}`
+const recordedWeek = (data: DemandForecast) => data.latestObservedIsoYear != null && data.latestObservedIsoWeek != null
+  ? `${data.latestObservedIsoYear} W${String(data.latestObservedIsoWeek).padStart(2, '0')}` : 'Not available'
+const runTime = (timestamp: string) => new Date(timestamp).toLocaleString(undefined, {
+  dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Colombo',
+})
+const perDay = (value: number | null | undefined) => value == null
+  ? 'Daily figure unavailable until operating days are recorded'
+  : `${m3(value)} per operating day`
 
-const weekLabel = (week: Week) => `W${week.isoWeek}`
-
-/**
- * Weekly demand bars. Observed weeks are solid, projected weeks hatched, scaled against the
- * largest value shown so the chart never implies a capacity threshold it cannot support.
- */
-function DemandChart({ title, caption, weeks, pick }: {
+/** One projected bar represents a flat baseline; a visible gap separates old records from it. */
+function DemandChart({ title, weeks, gapWeeks, pick }: {
   title: string
-  caption: string
   weeks: Week[]
+  gapWeeks: number | null | undefined
   pick: (week: Week) => number | null | undefined
 }) {
-  const values = weeks.map(week => Number(pick(week) ?? 0))
-  const peak = Math.max(...values, 1)
-  return (
-    <Card>
-      <h2 className="text-heading-s">{title}</h2>
-      <p className="lo-sub">{caption}</p>
-      <div className="forecast-chart">
-        <ul className="forecast-legend">
-          <li className="forecast-legend-item"><span className="forecast-legend-swatch observed" aria-hidden="true" />Observed</li>
-          <li className="forecast-legend-item"><span className="forecast-legend-swatch projected" aria-hidden="true" />Projected</li>
-        </ul>
-        <div className="forecast-bars" role="list" aria-label={title}>
-          {weeks.map(week => {
-            const value = pick(week)
-            const height = `${Math.round((Number(value ?? 0) / peak) * 100)}%`
-            return (
-              <div className="forecast-bar" key={`${week.isoYear}-${week.isoWeek}`} role="listitem"
-                aria-label={`${weekLabel(week)} ${week.observed ? 'observed' : 'projected'} ${m3(value)}`}>
-                <span className="forecast-bar-value">{value == null ? '—' : Math.round(Number(value))}</span>
-                <div className="forecast-bar-track">
-                  <div className={`forecast-bar-fill ${week.observed ? 'observed' : 'projected'}`}
-                    style={{ height }} />
-                </div>
-                <span className={`forecast-bar-label ${week.observed ? '' : 'projected'}`}>{weekLabel(week)}</span>
+  const observed = weeks.filter(week => week.observed)
+  const projected = weeks.filter(week => !week.observed && pick(week) != null)
+  const first = projected[0]
+  const flat = first != null && projected.every(week => pick(week) === pick(first))
+  const shown = [...observed, ...(flat ? projected.slice(0, 1) : projected)]
+  const peak = Math.max(...shown.map(week => Number(pick(week) ?? 0)), 1)
+  return <Card className="forecast-chart-card">
+    <h2 className="text-heading-s">{title}</h2>
+    <p className="lo-sub">Solid bars are recorded demand. Stripes show the first estimated week after the forecast run.</p>
+    <div className="forecast-chart">
+      <ul className="forecast-legend">
+        <li className="forecast-legend-item"><span className="forecast-legend-swatch observed" aria-hidden="true" />Recorded</li>
+        <li className="forecast-legend-item"><span className="forecast-legend-swatch projected" aria-hidden="true" />Estimated</li>
+      </ul>
+      <div className="forecast-bars" role="list" aria-label={title}>
+        {shown.map((week, index) => {
+          const value = pick(week)
+          const height = `${Math.round((Number(value ?? 0) / peak) * 100)}%`
+          return <div className="forecast-bar-group" key={`${week.isoYear}-${week.isoWeek}`}>
+            {index === observed.length && gapWeeks != null && gapWeeks > 1 &&
+              <div className="forecast-gap" role="note">{gapWeeks} weeks<br />without recent history</div>}
+            <div className="forecast-bar" role="listitem"
+              aria-label={`${weekLabel(week)} ${week.observed ? 'recorded' : 'estimated'} ${m3(value)}`}>
+              <span className="forecast-bar-value">{m3(value)}</span>
+              <div className="forecast-bar-track">
+                <div className={`forecast-bar-fill ${week.observed ? 'observed' : 'projected'}`}
+                  style={{ height }} />
               </div>
-            )
-          })}
-        </div>
+              <span className={`forecast-bar-label ${week.observed ? '' : 'projected'}`}>{weekLabel(week)}</span>
+            </div>
+          </div>
+        })}
       </div>
-    </Card>
-  )
+      {flat && projected.length > 1 && <p className="forecast-chart-note">
+        The same weekly estimate continues through {weekLabel(projected[projected.length - 1])}; repeated bars are hidden for clarity.
+      </p>}
+    </div>
+  </Card>
+}
+
+function HistoricalRange({ low, baseline, high }: {
+  low: number | null | undefined
+  baseline: number | null | undefined
+  high: number | null | undefined
+}) {
+  if (low == null || baseline == null || high == null || high <= low) {
+    return <p className="lo-sub">There are not enough past comparisons to show a useful range.</p>
+  }
+  const marker = Math.max(0, Math.min(100, ((baseline - low) / (high - low)) * 100))
+  return <div className="forecast-range" role="img"
+    aria-label={`Past variation from ${m3(low)} to ${m3(high)}, around a weekly estimate of ${m3(baseline)}`}>
+    <div className="forecast-range-track"><span className="forecast-range-marker" style={{ left: `${marker}%` }} /></div>
+    <div className="forecast-range-labels"><span>{m3(low)}<small>Lower end</small></span>
+      <span>{m3(baseline)}<small>Estimate</small></span><span>{m3(high)}<small>Upper end</small></span></div>
+  </div>
 }
 
 export function CapacityForecastPage() {
@@ -63,14 +91,13 @@ export function CapacityForecastPage() {
 
   const projected = (data?.weeks ?? []).filter(week => !week.observed)
   const firstProjected = projected[0]
-  // The server marks a series unavailable when its history is too short; honour that here.
   const published = (data?.series ?? []).filter(series => series.confidence !== 'none')
 
   return <>
     <PageHeader title="Capacity forecast" subtitle={data
-      ? `${data.depot} · advisory demand outlook from observed history`
-      : 'Demand against fleet capacity.'}
-      actions={<Link className="btn btn-secondary btn-md" to="/dispatcher/capacity-decision">Capacity decision</Link>} />
+      ? `${data.depot} · calculated ${runTime(data.generatedAt)} (Sri Lanka time) from recorded orders`
+      : 'Weekly demand estimated from recorded orders.'}
+      actions={<Link className="btn btn-secondary btn-md" to="/dispatcher/capacity-decision">Review fleet limits</Link>} />
 
     {!scope.depot && <UnavailablePanel title="Weekly demand"
       description="Choose a depot in the workspace header to see its demand outlook." />}
@@ -79,71 +106,93 @@ export function CapacityForecastPage() {
       onRetry={() => void forecast.refetch()} />}
 
     {data && <>
-      <section className="grid-metrics" aria-label="Forecast summary">
-        {/* Fleet limits are shown as plain facts. The history does not support a capacity verdict,
-            so no tile claims a shortfall; feasibility is decided by plan validation alone. */}
-        <MetricCard label="Fleet volume capacity" value={m3(data.capacity.volumeCapM3)}
-          caption={`${data.capacity.vehicles} vehicles, one trip each`} />
-        <MetricCard label="Refrigerated capacity" value={m3(data.capacity.reeferVolumeCapM3)}
-          caption={`${data.capacity.reeferVehicles} refrigerated vehicles`} />
-        <MetricCard label="Projected weekly demand"
-          value={m3(firstProjected?.forecastTotalM3)}
-          caption={firstProjected ? `${weekLabel(firstProjected)} · ${m3(firstProjected.forecastTotalPerDayM3)} per operating day` : 'No projection available'} />
-        <MetricCard label="Projected chilled demand"
-          value={m3(firstProjected?.forecastChilledM3)}
-          caption={firstProjected ? `${weekLabel(firstProjected)} · ${m3(firstProjected.forecastChilledPerDayM3)} per operating day` : 'No projection available'} />
+      <section className="forecast-intro" aria-label="How to read this outlook">
+        <h2 className="text-heading-s">What this forecast says</h2>
+        {firstProjected?.forecastTotalM3 == null
+          ? <p>There is not enough completed history to estimate weekly demand for this depot yet.</p>
+          : <p>The first week after this forecast run is estimated at <strong>{m3(firstProjected.forecastTotalM3)}</strong> of orders,
+              including <strong>{m3(firstProjected.forecastChilledM3)}</strong> needing refrigeration.
+              This is a guide from past orders, not a count of confirmed orders or a delivery plan.</p>}
+      </section>
+
+      {data.weeksSinceLastObservation != null && data.weeksSinceLastObservation > 1 &&
+        <section className="forecast-freshness" role="status" aria-label="Older demand history">
+          <strong>History needs updating</strong>
+          <p>The latest recorded week is {recordedWeek(data)}, {data.weeksSinceLastObservation} weeks before this forecast was run.
+            Use this estimate as an older reference until newer order history is available.</p>
+        </section>}
+
+      <section aria-label="Estimated demand">
+        <h2 className="forecast-section-title">{firstProjected?.forecastTotalM3 == null
+          ? 'Demand estimate unavailable' : `Estimated demand for ${weekLabel(firstProjected)}`}</h2>
+        <div className="forecast-metrics">
+          <MetricCard label="All order volume" value={m3(firstProjected?.forecastTotalM3)}
+            caption={firstProjected ? perDay(firstProjected.forecastTotalPerDayM3) : 'No estimate available'} />
+          <MetricCard label="Of that, chilled volume" value={m3(firstProjected?.forecastChilledM3)}
+            caption={firstProjected ? perDay(firstProjected.forecastChilledPerDayM3) : 'No estimate available'} />
+        </div>
       </section>
 
       {data.weeks.length === 0
         ? <UnavailablePanel title="Weekly demand"
             description="No demand history has been aggregated for this depot, so no outlook can be shown. Supply the historical deliveries file to enable it." />
-        : <div className="split-view">
-            <DemandChart title="Total volume per week" weeks={data.weeks}
-              caption="Observed weeks, then the projected baseline."
+        : <div className="forecast-chart-grid">
+            <DemandChart title="All order volume by week" weeks={data.weeks}
+              gapWeeks={data.weeksSinceLastObservation}
               pick={week => week.observed ? week.observedTotalM3 : week.forecastTotalM3} />
-            <DemandChart title="Chilled volume per week" weeks={data.weeks}
-              caption="Chilled demand comes from the brands that order it."
+            <DemandChart title="Chilled volume by week" weeks={data.weeks}
+              gapWeeks={data.weeksSinceLastObservation}
               pick={week => week.observed ? week.observedChilledM3 : week.forecastChilledM3} />
           </div>}
 
       <div className="split-view">
         <Card>
-          <h2 className="text-heading-s">Demand by brand</h2>
+          <h2 className="text-heading-s">Which brands drive the estimate?</h2>
+          <p className="lo-sub">Each brand is estimated separately. Chilled volume is included in its total.
+            “Use caution” marks a small-volume series; it is not a probability score.</p>
           {published.length === 0
             ? <p className="lo-sub">No brand has enough completed weeks to project yet.</p>
-            : <dl className="detail-grid">
-                {data.series.map(series => <div key={series.brand}>
-                  <dt>{series.brand}{series.confidence === 'low'
-                    ? <> <Badge tone="warning">Low confidence</Badge></>
-                    : series.confidence === 'none' ? <> <Badge tone="neutral">No projection</Badge></> : null}</dt>
-                  <dd>
-                    {series.confidence === 'none' ? '—' : m3(series.forecastTotalM3)}
-                    {series.chilledApplicable && series.confidence !== 'none'
-                      ? ` · ${m3(series.forecastChilledM3)} chilled` : ' · no chilled demand'}
-                    <br /><span className="lo-sub">{series.basis}</span>
-                  </dd>
-                </div>)}
-              </dl>}
+            : <ul className="forecast-brand-list">
+                {data.series.map(series => <li key={series.brand} className="forecast-brand-row">
+                  <div className="forecast-brand-heading"><strong>{series.brand}</strong>
+                    {series.confidence === 'low' ? <Badge tone="warning">Use caution</Badge>
+                      : series.confidence === 'none' ? <Badge tone="neutral">No estimate</Badge> : null}</div>
+                  <p>{series.confidence === 'none' ? 'No weekly estimate yet' : <>
+                    {m3(series.forecastTotalM3)} total · {series.chilledApplicable
+                      ? `${m3(series.forecastChilledM3)} of that chilled` : 'no chilled demand recorded'}</>}</p>
+                  <details><summary>Why this estimate?</summary><p>{series.basis}</p></details>
+                </li>)}
+              </ul>}
         </Card>
 
         <Card>
-          <h2 className="text-heading-s">How this was calculated</h2>
-          <dl className="detail-grid">
-            <div><dt>Method</dt><dd>{data.method} ({data.methodVersion})</dd></div>
-            <div><dt>History averaged</dt><dd>{data.windowWeeks} completed weeks per brand</dd></div>
-            <div><dt>Range shown</dt><dd>
-              {firstProjected?.lowTotalM3 == null ? '—'
-                : `${m3(firstProjected.lowTotalM3)} to ${m3(firstProjected.highTotalM3)}`}
-            </dd></div>
-            <div><dt>Calculated</dt><dd>{new Date(data.generatedAt).toLocaleString()}</dd></div>
-          </dl>
-          <p className="forecast-advisory">
-            The range is how far actual weeks have moved around this baseline in the recorded history,
-            not a model confidence interval. These figures are advisory: planning uses confirmed
-            orders, and every published plan is re-checked against the operating constraints.
-          </p>
+          <h2 className="text-heading-s">How was this estimated?</h2>
+          {data.method === 'moving_average' ? <ol className="forecast-method-steps">
+            <li>Group past order volume into completed weeks for each brand at {data.depot}.</li>
+            <li>Average the latest <strong>{data.windowWeeks} completed weeks</strong> for each brand.</li>
+            <li>Add those brand averages to get the depot estimate. The same weekly estimate is used for later weeks because this method does not predict a trend.</li>
+          </ol> : <p className="lo-sub">Method: {data.method} ({data.methodVersion}).</p>}
+          <div className="forecast-basis-facts">
+            <p><strong>Last recorded week</strong><span>{recordedWeek(data)}</span></p>
+            <p><strong>Forecast run</strong><span>{runTime(data.generatedAt)} (Sri Lanka time)</span></p>
+          </div>
+          <h3 className="forecast-range-title">How much has demand varied?</h3>
+          <HistoricalRange low={firstProjected?.lowTotalM3} baseline={firstProjected?.forecastTotalM3}
+            high={firstProjected?.highTotalM3} />
+          <p className="forecast-advisory">This band summarizes past variation around the weekly estimate.
+            It is not a guarantee or a statistical confidence interval.</p>
         </Card>
       </div>
+      <section className="forecast-capacity-context" aria-label="Fleet reference">
+        <div><h2 className="forecast-section-title">Fleet reference</h2>
+          <p>One trip of space across registered vehicles. Actual availability, routes, weight, temperature and time limits are checked during planning.</p></div>
+        <div className="forecast-metrics">
+          <MetricCard label="All registered vehicles" value={m3(data.capacity.volumeCapM3)}
+            caption={`${data.capacity.vehicles} vehicles · one trip each`} />
+          <MetricCard label="Registered refrigerated vehicles" value={m3(data.capacity.reeferVolumeCapM3)}
+            caption={`${data.capacity.reeferVehicles} vehicles · one trip each`} />
+        </div>
+      </section>
     </>}
   </>
 }
@@ -162,22 +211,23 @@ export function CapacityDecisionPage() {
 
     {forecast.isError && <ErrorState error={forecast.error} message="Demand forecast could not be loaded."
       onRetry={() => void forecast.refetch()} />}
+    {scope.depot && forecast.isPending && <LoadingState label="Loading capacity review" />}
 
     {!scope.depot && <UnavailablePanel title="Forecast snapshot"
       description="Choose a depot in the workspace header to see its demand outlook." />}
 
-    {data && peak
+    {data && peak?.forecastChilledM3 != null
       ? <Card>
           <h2 className="text-heading-s">Forecast snapshot</h2>
-          <p className="lo-sub">Advisory; derived from observed history and not a capacity verdict.</p>
+          <p className="lo-sub">This is an order-volume estimate from history. It is not a capacity verdict.</p>
           <dl className="detail-grid">
-            <div><dt>Highest projected chilled week</dt>
-              <dd>{weekLabel(peak)} · {m3(peak.forecastChilledM3)} ({m3(peak.forecastChilledPerDayM3)} per operating day)</dd></div>
+            <div><dt>Projected chilled week</dt>
+              <dd>{weekLabel(peak)} · {m3(peak.forecastChilledM3)} ({perDay(peak.forecastChilledPerDayM3)})</dd></div>
             <div><dt>Total volume that week</dt>
-              <dd>{m3(peak.forecastTotalM3)} ({m3(peak.forecastTotalPerDayM3)} per operating day)</dd></div>
-            <div><dt>Depot fleet volume</dt>
+              <dd>{m3(peak.forecastTotalM3)} ({perDay(peak.forecastTotalPerDayM3)})</dd></div>
+            <div><dt>Registered fleet space</dt>
               <dd>{m3(data.capacity.volumeCapM3)} across {data.capacity.vehicles} vehicles, one trip each</dd></div>
-            <div><dt>Refrigerated fleet volume</dt>
+            <div><dt>Registered refrigerated space</dt>
               <dd>{m3(data.capacity.reeferVolumeCapM3)} across {data.capacity.reeferVehicles} vehicles</dd></div>
           </dl>
           <Link className="table-link" to="/dispatcher/forecast">Back to the demand outlook</Link>
@@ -193,6 +243,6 @@ export function CapacityDecisionPage() {
     </dl></Card>
 
     <UnavailablePanel title="Proposed action"
-      description="Recording a fleet decision against the outlook is not built yet. The observed history shows demand well inside depot volume capacity, so no hire or extra-trip recommendation can be justified from it." />
+      description="Recording a fleet decision against this outlook is not available yet. Use confirmed orders and the planning validator before making a vehicle commitment." />
   </>
 }

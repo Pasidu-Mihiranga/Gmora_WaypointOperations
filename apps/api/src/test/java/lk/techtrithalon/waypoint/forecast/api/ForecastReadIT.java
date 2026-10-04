@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 class ForecastReadIT extends ReferenceApiTestSupport {
     private static final String PATH = "/api/v1/dispatcher/forecast/demand";
 
-    /** 13 completed weeks ending before the fixture calendar's week 26, so week 26 starts the horizon.
+    /** 13 completed weeks ending before the fixture clock's week 26.
      *  Six of them are echoed back as the observed tail, so index 6 is the first projected week. */
     private void seedSeries(String depot, String brand, double total, double chilled) {
         for (int week = 13; week <= 25; week++) {
@@ -37,6 +37,7 @@ class ForecastReadIT extends ReferenceApiTestSupport {
             .andExpect(jsonPath("$.methodVersion").value("13w.1"))
             .andExpect(jsonPath("$.series.length()").value(0))
             .andExpect(jsonPath("$.weeks.length()").value(0))
+            .andExpect(jsonPath("$.weeksSinceLastObservation").doesNotExist())
             // Capacity is still reported as a plain fact, with no verdict attached.
             .andExpect(jsonPath("$.capacity.vehicles").value(1))
             .andExpect(jsonPath("$.capacity.reeferVehicles").value(1));
@@ -51,6 +52,9 @@ class ForecastReadIT extends ReferenceApiTestSupport {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.windowWeeks").value(13))
             .andExpect(jsonPath("$.generatedAt").exists())
+            .andExpect(jsonPath("$.latestObservedIsoYear").value(2026))
+            .andExpect(jsonPath("$.latestObservedIsoWeek").value(25))
+            .andExpect(jsonPath("$.weeksSinceLastObservation").value(1))
             .andExpect(jsonPath("$.series.length()").value(2))
             // Brands are reported separately because the history differs sharply between them.
             .andExpect(jsonPath("$.series[0].brand").value("Fresh"))
@@ -68,12 +72,15 @@ class ForecastReadIT extends ReferenceApiTestSupport {
             .andExpect(jsonPath("$.weeks[0].forecastTotalM3").doesNotExist())
             .andExpect(jsonPath("$.weeks[0].observedTotalM3").value(660.0))
             .andExpect(jsonPath("$.weeks[6].observed").value(false))
-            .andExpect(jsonPath("$.weeks[6].isoWeek").value(26))
+            .andExpect(jsonPath("$.weeks[6].isoWeek").value(27))
             .andExpect(jsonPath("$.weeks[6].observedTotalM3").doesNotExist())
             .andExpect(jsonPath("$.weeks[6].forecastTotalM3").value(660.0))
-            // Week 26 of the fixture calendar has two operating days, so 660 / 2 = 330 per day.
+            // Week 27 has two recorded operating days, so 660 / 2 = 330 per day.
             .andExpect(jsonPath("$.weeks[6].operatingDays").value(2))
-            .andExpect(jsonPath("$.weeks[6].forecastTotalPerDayM3").value(330.0));
+            .andExpect(jsonPath("$.weeks[6].forecastTotalPerDayM3").value(330.0))
+            // No later calendar week is recorded, so no later per-day figure is invented.
+            .andExpect(jsonPath("$.weeks[7].operatingDays").value(0))
+            .andExpect(jsonPath("$.weeks[7].forecastTotalPerDayM3").doesNotExist());
     }
 
     @Test

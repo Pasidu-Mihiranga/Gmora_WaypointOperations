@@ -1457,10 +1457,16 @@ export interface components {
             depot?: string;
             /** Format: date-time */
             generatedAt?: string;
+            /** Format: int32 */
+            latestObservedIsoWeek?: number;
+            /** Format: int32 */
+            latestObservedIsoYear?: number;
             method?: string;
             methodVersion?: string;
             series?: components["schemas"]["SeriesRow"][];
             weeks?: components["schemas"]["WeekRow"][];
+            /** Format: int32 */
+            weeksSinceLastObservation?: number;
             /** Format: int32 */
             windowWeeks?: number;
         };

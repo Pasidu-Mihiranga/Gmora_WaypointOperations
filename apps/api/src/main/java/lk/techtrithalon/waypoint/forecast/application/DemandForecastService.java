@@ -3,8 +3,17 @@ package lk.techtrithalon.waypoint.forecast.application;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.IsoFields;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lk.techtrithalon.waypoint.forecast.ForecastProperties;
 import lk.techtrithalon.waypoint.forecast.domain.DemandForecast;
 import lk.techtrithalon.waypoint.forecast.infrastructure.DemandHistoryRepository;
@@ -88,9 +97,16 @@ public class DemandForecastService {
             depotHigh = depotHigh.add(result.highDeltaM3() == null ? result.totalM3() : result.highDeltaM3());
         }
 
+        var observed = repository.depotSeries(depot);
+        var latest = observed.isEmpty() ? null : observed.getLast();
+        LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneId.of("Asia/Colombo"));
+        Integer lag = latest == null ? null : Math.toIntExact(Math.max(0,
+            ChronoUnit.WEEKS.between(weekMonday(latest.isoYear(), latest.isoWeek()),
+                today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))));
         return new DemandForecast(depot, provider.method(), provider.methodVersion(),
-            properties.windowWeeks(), clock.instant(), true, capacity(user, depot),
-            weeks(repository.depotSeries(depot), horizon, anyAvailable,
+            properties.windowWeeks(), clock.instant(), latest == null ? null : latest.isoYear(),
+            latest == null ? null : latest.isoWeek(), lag, true, capacity(user, depot),
+            weeks(observed, today, horizon, anyAvailable,
                 depotTotal, depotChilled, depotLow, depotHigh),
             series);
     }
@@ -99,7 +115,7 @@ public class DemandForecastService {
      * Observed weeks already in history, then the future weeks of the horizon. Each future week
      * carries the same baseline, divided by that week's real operating days from the calendar.
      */
-    private List<DemandForecast.WeekRow> weeks(List<DemandHistoryRepository.Week> history, int horizon,
+    private List<DemandForecast.WeekRow> weeks(List<DemandHistoryRepository.Week> history, LocalDate today, int horizon,
                                                boolean available, BigDecimal total, BigDecimal chilled,
                                                BigDecimal low, BigDecimal high) {
         List<DemandForecast.WeekRow> rows = new ArrayList<>();
@@ -113,18 +129,33 @@ public class DemandForecastService {
         if (history.isEmpty()) return rows;
 
         var last = history.getLast();
-        var future = repository.calendarWeeks(last.isoYear(), last.isoWeek(), horizon + 1);
-        for (var week : future) {
-            if (week.isoYear() == last.isoYear() && week.isoWeek() == last.isoWeek()) continue;
-            if (rows.stream().filter(row -> !row.observed()).count() >= horizon) break;
-            BigDecimal days = BigDecimal.valueOf(week.operatingDays());
-            rows.add(new DemandForecast.WeekRow(week.isoYear(), week.isoWeek(), week.operatingDays(), false,
+        LocalDate start = today.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        LocalDate afterHistory = weekMonday(last.isoYear(), last.isoWeek()).plusWeeks(1);
+        if (start.isBefore(afterHistory)) start = afterHistory;
+        int startYear = start.get(IsoFields.WEEK_BASED_YEAR);
+        int startWeek = start.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+        Map<List<Integer>, Integer> operatingDays = repository.calendarWeeks(startYear, startWeek, horizon).stream()
+            .collect(Collectors.toMap(week -> List.of(week.isoYear(), week.isoWeek()),
+                DemandHistoryRepository.Week::operatingDays));
+        for (int index = 0; index < horizon; index++) {
+            LocalDate monday = start.plusWeeks(index);
+            int year = monday.get(IsoFields.WEEK_BASED_YEAR);
+            int week = monday.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+            int count = operatingDays.getOrDefault(List.of(year, week), 0);
+            BigDecimal days = BigDecimal.valueOf(count);
+            rows.add(new DemandForecast.WeekRow(year, week, count, false,
                 null, null,
                 available ? total : null, available ? chilled : null,
                 available ? low : null, available ? high : null,
                 available ? perDay(total, days) : null, available ? perDay(chilled, days) : null));
         }
         return rows;
+    }
+
+    private static LocalDate weekMonday(int isoYear, int isoWeek) {
+        return LocalDate.of(isoYear, 1, 4)
+            .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, isoWeek)
+            .with(ChronoField.DAY_OF_WEEK, DayOfWeek.MONDAY.getValue());
     }
 
     private DemandForecast.CapacityContext capacity(CurrentUser user, String depot) {
