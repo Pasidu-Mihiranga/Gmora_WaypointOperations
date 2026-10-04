@@ -129,8 +129,8 @@ changes=$(curl -fsS -b "$cookies" "$API/api/v1/dispatcher/plans/$plan_id/changes
 assert_failure 404 NOT_FOUND -b "$cookies" "$API/api/v1/dispatcher/plans/999999999/changes"
 curl -fsS -b "$cookies" "$API/api/v1/dispatcher/receipt-discrepancies?depot=$depot" > /dev/null || fail "receipt discrepancies failed"
 assert_failure 400 INVALID_STATUS -b "$cookies" "$API/api/v1/dispatcher/receipt-discrepancies?status=PENDING"
-queue=$(curl -fsS -b "$cookies" "$API/api/v1/dispatcher/exceptions?date=$demo_date&depot=$depot")
-[[ "$(echo "$queue" | json_field "['counts']['all']")" == "$(echo "$queue" | json_field "['items'].__len__()")" ]] || fail "exceptions counts disagree with items: $queue"
+exceptions_queue=$(curl -fsS -b "$cookies" "$API/api/v1/dispatcher/exceptions?date=$demo_date&depot=$depot")
+[[ "$(echo "$exceptions_queue" | json_field "['counts']['all']")" == "$(echo "$exceptions_queue" | json_field "['items'].__len__()")" ]] || fail "exceptions counts disagree with items: $exceptions_queue"
 board=$(curl -fsS -b "$cookies" "$API/api/v1/dispatcher/live-operations?date=$demo_date&depot=$depot")
 [[ "$(echo "$board" | json_field "['counts']['total']")" == "$(echo "$board" | json_field "['vehicles'].__len__()")" ]] || fail "live board counts disagree with vehicles: $board"
 assert_failure 400 DEPOT_REQUIRED -b "$cookies" "$API/api/v1/dispatcher/exceptions?date=$demo_date"

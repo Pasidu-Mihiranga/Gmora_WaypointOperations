@@ -4,6 +4,14 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Capacity forecast made readable for dispatchers
+
+- Finished the forecast screen revision: the single estimated bar was being pushed out of view by the history-gap note. The gap is now its own column ("19 weeks · no recorded orders") and the estimate is visible beside the last recorded week.
+- Chart labels now show the week number and its Monday date (computed in the browser from the ISO week), and the headline reads "week of Jun 29 (2026 W27)".
+- Checked for hard-coded values: every figure comes from `GET /api/v1/dispatcher/forecast/demand`. The 2026-06-25 run date is the explicit `DEMO_CLOCK_INSTANT` setting, and the daily figures show as unavailable because the calendar has no operating days after W26.
+- Files: `apps/web/src/features/forecast/CapacityPages.tsx`, `forecast.css`, `CapacityPages.test.tsx`. Verified with `ForecastReadIT`, the forecast web test, type-check, lint and a rebuilt-stack screenshot.
+- Fixed the CI "Compose smoke" failure (`KeyError: 'totalOrders'`): `scripts/smoke.sh` reused the `queue` variable for the exceptions response, so the later district-total check read the wrong JSON. The exceptions response now has its own variable. Verified with the full script on a clean throwaway stack (`SMOKE OK`).
+
 ## 2026-10-04 — Recheck the local backend container
 
 - Rebuilt and started the existing API with `docker compose up --build -d api` on branch `audit/dispatcher-data-planning-ui` at `a2aa26f`. Docker reused the source and JAR build layers because backend files had not changed since the preceding build.

@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Card, ErrorState, LoadingState, MetricCard, PageHeader } from '../../components'
 import { UnavailablePanel } from '../../components/UnavailablePanel'
@@ -11,6 +12,12 @@ type Week = DemandForecast['weeks'][number]
 const m3 = (value: number | null | undefined) =>
   value == null ? '—' : `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })} m³`
 const weekLabel = (week: Week) => `${week.isoYear} W${String(week.isoWeek).padStart(2, '0')}`
+/** ISO weeks start on Monday; the date makes "W27" readable without knowing the week numbering. */
+const weekStart = (week: Week) => {
+  const jan4 = new Date(Date.UTC(week.isoYear, 0, 4))
+  const monday = new Date(jan4.getTime() + ((week.isoWeek - 1) * 7 - ((jan4.getUTCDay() + 6) % 7)) * 86_400_000)
+  return monday.toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })
+}
 const recordedWeek = (data: DemandForecast) => data.latestObservedIsoYear != null && data.latestObservedIsoWeek != null
   ? `${data.latestObservedIsoYear} W${String(data.latestObservedIsoWeek).padStart(2, '0')}` : 'Not available'
 const runTime = (timestamp: string) => new Date(timestamp).toLocaleString(undefined, {
@@ -45,23 +52,30 @@ function DemandChart({ title, weeks, gapWeeks, pick }: {
         {shown.map((week, index) => {
           const value = pick(week)
           const height = `${Math.round((Number(value ?? 0) / peak) * 100)}%`
-          return <div className="forecast-bar-group" key={`${week.isoYear}-${week.isoWeek}`}>
+          return <Fragment key={`${week.isoYear}-${week.isoWeek}`}>
             {index === observed.length && gapWeeks != null && gapWeeks > 1 &&
-              <div className="forecast-gap" role="note">{gapWeeks} weeks<br />without recent history</div>}
-            <div className="forecast-bar" role="listitem"
-              aria-label={`${weekLabel(week)} ${week.observed ? 'recorded' : 'estimated'} ${m3(value)}`}>
-              <span className="forecast-bar-value">{m3(value)}</span>
-              <div className="forecast-bar-track">
-                <div className={`forecast-bar-fill ${week.observed ? 'observed' : 'projected'}`}
-                  style={{ height }} />
+              <div className="forecast-gap" role="note">
+                <strong>{gapWeeks} weeks</strong>
+                <span>no recorded orders</span>
+              </div>}
+            <div className="forecast-bar-group">
+              <div className="forecast-bar" role="listitem"
+                aria-label={`Week of ${weekStart(week)}, ${weekLabel(week)}, ${week.observed ? 'recorded' : 'estimated'} ${m3(value)}`}>
+                <span className="forecast-bar-value">{m3(value)}</span>
+                <div className="forecast-bar-track">
+                  <div className={`forecast-bar-fill ${week.observed ? 'observed' : 'projected'}`}
+                    style={{ height }} />
+                </div>
+                <span className={`forecast-bar-label ${week.observed ? '' : 'projected'}`}>
+                  W{String(week.isoWeek).padStart(2, '0')}<small>{weekStart(week)}</small>
+                </span>
               </div>
-              <span className={`forecast-bar-label ${week.observed ? '' : 'projected'}`}>{weekLabel(week)}</span>
             </div>
-          </div>
+          </Fragment>
         })}
       </div>
       {flat && projected.length > 1 && <p className="forecast-chart-note">
-        The same weekly estimate continues through {weekLabel(projected[projected.length - 1])}; repeated bars are hidden for clarity.
+        The same estimate applies to every week through {weekLabel(projected[projected.length - 1])} ({projected.length} weeks); the repeated bars are hidden for clarity.
       </p>}
     </div>
   </Card>
@@ -124,7 +138,7 @@ export function CapacityForecastPage() {
 
       <section aria-label="Estimated demand">
         <h2 className="forecast-section-title">{firstProjected?.forecastTotalM3 == null
-          ? 'Demand estimate unavailable' : `Estimated demand for ${weekLabel(firstProjected)}`}</h2>
+          ? 'Demand estimate unavailable' : `Estimated demand for the week of ${weekStart(firstProjected)} (${weekLabel(firstProjected)})`}</h2>
         <div className="forecast-metrics">
           <MetricCard label="All order volume" value={m3(firstProjected?.forecastTotalM3)}
             caption={firstProjected ? perDay(firstProjected.forecastTotalPerDayM3) : 'No estimate available'} />
