@@ -14,6 +14,9 @@ import java.util.List;
  * @param method        identifier of the calculation that produced the values
  * @param methodVersion version of that calculation, so a later provider is distinguishable
  * @param windowWeeks   completed weeks averaged per series
+
+ * @param historyStale  true when the recorded history ends more than the configured number of weeks before the run
+ * @param timeZone      business time zone that generatedAt and the week dates are read in
  * @param advisory      always true; forecasts never feed planning
  */
 public record DemandForecast(
@@ -25,6 +28,8 @@ public record DemandForecast(
     Integer latestObservedIsoYear,
     Integer latestObservedIsoWeek,
     Integer weeksSinceLastObservation,
+    boolean historyStale,
+    String timeZone,
     boolean advisory,
     CapacityContext capacity,
     List<WeekRow> weeks,

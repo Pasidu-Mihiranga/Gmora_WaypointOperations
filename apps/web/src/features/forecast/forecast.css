@@ -1,77 +1,98 @@
-/* Demand outlook uses shared tokens and keeps recorded data distinct from estimates. */
-.forecast-intro,
-.forecast-freshness,
-.forecast-capacity-context {
-  border: 1px solid var(--color-border-default);
+/* Demand outlook follows the Figma "Capacity forecast" frame and keeps recorded data distinct from estimates. */
+.forecast-freshness {
+  border: 1px solid var(--color-status-warning);
   border-radius: var(--radius-md);
-  padding: var(--space-20);
-  margin-bottom: var(--space-20);
+  background: var(--color-status-warning-soft);
+  padding: var(--space-12) var(--space-16);
+  margin-bottom: var(--space-16);
 }
-.forecast-intro { background: var(--color-brand-primary-soft); border-color: var(--color-brand-primary-border); }
-.forecast-freshness { background: var(--color-status-warning-soft); border-color: var(--color-status-warning); }
-.forecast-intro h2,
-.forecast-freshness p,
-.forecast-capacity-context p { margin: 0; }
-.forecast-intro p { margin: var(--space-8) 0 0; line-height: var(--font-body-m-line-height); }
 .forecast-freshness strong { color: var(--color-status-warning); }
-.forecast-freshness p { margin-top: var(--space-6); }
-.forecast-section-title { margin: 0 0 var(--space-12); font-size: var(--font-heading-s-size); }
-.forecast-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); }
-.forecast-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-20); margin: var(--space-24) 0; }
-.forecast-chart-card { min-width: 0; }
+.forecast-freshness p { margin: var(--space-4) 0 0; font-size: var(--font-body-s-size); }
+
+.forecast-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); margin-bottom: var(--space-16); }
+.forecast-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); margin-bottom: var(--space-16); }
+.split-view { margin-bottom: var(--space-16); }
+
+.forecast-chart-card { min-width: 0; display: flex; flex-direction: column; gap: var(--space-12); border-radius: var(--radius-lg); }
 .forecast-chart-card h2 { margin: 0; }
-.forecast-chart-card .lo-sub { margin: var(--space-8) 0 var(--space-16); }
-.forecast-chart { display: flex; flex-direction: column; gap: var(--space-12); }
-.forecast-legend { display: flex; flex-wrap: wrap; gap: var(--space-16); margin: 0; padding: 0; list-style: none; font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
-.forecast-legend-item { display: inline-flex; align-items: center; gap: var(--space-8); }
-.forecast-legend-swatch { width: var(--space-16); height: var(--space-16); border-radius: var(--radius-sm); }
-.forecast-legend-swatch.observed { background: var(--color-brand-primary); }
-.forecast-legend-swatch.projected,
-.forecast-bar-fill.projected {
+.forecast-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12); }
+.forecast-chart-sub { margin: var(--space-2) 0 0; font-size: var(--font-caption-size); color: var(--color-text-secondary); }
+.forecast-legend { display: flex; flex-wrap: wrap; gap: var(--space-12); margin: 0; padding: 0; list-style: none; font-size: var(--font-overline-size); color: var(--color-text-secondary); }
+.forecast-legend-item { display: inline-flex; align-items: center; gap: var(--space-6); white-space: nowrap; }
+.forecast-legend-swatch { width: var(--space-10); height: var(--space-10); border-radius: var(--space-2); }
+
+/* Total volume is blue and chilled volume is green, as in Figma; stripes mark estimated weeks. */
+.forecast-legend-swatch.total,
+.forecast-bar-fill.total.observed { background: var(--color-type-normal); }
+.forecast-legend-swatch.chilled,
+.forecast-bar-fill.chilled.observed { background: var(--color-type-fridge); }
+.forecast-legend-swatch.projected.total,
+.forecast-bar-fill.projected.total {
   background: repeating-linear-gradient(135deg,
-    var(--color-brand-primary-soft) 0 var(--space-6),
-    var(--color-brand-primary-border) var(--space-6) var(--space-12));
+    var(--color-type-normal-soft) 0 var(--space-6), var(--color-type-normal) var(--space-6) var(--space-12));
 }
-.forecast-bars { display: flex; align-items: flex-end; gap: var(--space-6); overflow-x: auto; padding-top: var(--space-16); }
-.forecast-bar-group { display: flex; align-items: flex-end; flex: 1 0 calc(var(--space-32) + var(--space-16)); min-width: 0; }
+.forecast-legend-swatch.projected.chilled,
+.forecast-bar-fill.projected.chilled {
+  background: repeating-linear-gradient(135deg,
+    var(--color-type-fridge-soft) 0 var(--space-6), var(--color-type-fridge) var(--space-6) var(--space-12));
+}
+
+.forecast-bars { display: flex; align-items: flex-end; gap: var(--space-6); overflow-x: auto; padding-top: var(--space-8); }
+.forecast-bar-group { display: flex; align-items: flex-end; flex: 1 0 calc(var(--space-32) + var(--space-12)); min-width: 0; }
 .forecast-gap { align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: var(--space-2); flex: 0 0 calc(var(--space-32) * 2); margin: 0 var(--space-4); padding: 0 var(--space-4); border-left: 1px dashed var(--color-border-default); border-right: 1px dashed var(--color-border-default); text-align: center; color: var(--color-text-secondary); font-size: var(--font-caption-size); line-height: var(--font-caption-line-height); }
 .forecast-gap strong { color: var(--color-status-warning); }
 .forecast-bar { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); flex: 1; min-width: 0; }
-.forecast-bar-value { font-size: var(--font-caption-size); color: var(--color-text-secondary); white-space: nowrap; }
-.forecast-bar-track { display: flex; align-items: flex-end; width: 100%; height: calc(var(--space-32) * 4); border-bottom: 1px solid var(--color-border-default); }
-.forecast-bar-fill { width: 100%; border-radius: var(--radius-sm) var(--radius-sm) 0 0; min-height: var(--space-2); }
-.forecast-bar-fill.observed { background: var(--color-brand-primary); }
-.forecast-bar-label { display: flex; flex-direction: column; min-height: var(--space-32); color: var(--color-text-tertiary); font-size: var(--font-caption-size); text-align: center; }
+.forecast-bar-value { font-size: var(--font-overline-size); color: var(--color-text-secondary); white-space: nowrap; }
+.forecast-bar-value.projected { color: var(--color-text-primary); font-weight: var(--font-caption-medium-weight); }
+.forecast-bar-track { display: flex; align-items: flex-end; width: 100%; height: calc(var(--space-32) * 5); border-bottom: 1px solid var(--color-border-default); }
+.forecast-bar-fill { width: 100%; border-radius: var(--radius-xs) var(--radius-xs) 0 0; min-height: var(--space-2); }
+.forecast-bar-label { display: flex; flex-direction: column; align-items: center; min-height: var(--space-32); color: var(--color-text-tertiary); font-size: var(--font-overline-size); text-align: center; }
+.forecast-bar-label small { color: var(--color-text-secondary); font-size: var(--font-overline-size); }
 .forecast-bar-label.projected { color: var(--color-text-brand); font-weight: var(--font-caption-medium-weight); }
-.forecast-bar-label small { color: var(--color-text-secondary); font-size: var(--font-caption-size); }
-.forecast-chart-note { margin: 0; font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
-.forecast-brand-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); margin: var(--space-16) 0 0; padding: 0; list-style: none; }
+.forecast-chart-foot { margin: 0; padding: var(--space-8) var(--space-12); border-radius: var(--radius-sm); background: var(--color-bg-subtle); font-size: var(--font-caption-size); color: var(--color-text-secondary); }
+
+/* Figma "Selected week" rows: a chip, a bold line and a quiet line. */
+.split-view .card h2 { margin: 0 0 var(--space-8); }
+.forecast-row { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-12) 0; border-top: 1px solid var(--color-border-default); }
+.forecast-row-chip { flex: 0 0 calc(var(--space-32) * 2); padding: var(--space-2) var(--space-8); border-radius: var(--radius-xs); background: var(--color-bg-subtle); font-size: var(--font-overline-size); font-weight: var(--font-caption-medium-weight); text-align: center; }
+.forecast-row-body { display: flex; flex-direction: column; gap: var(--space-4); flex: 1; min-width: 0; font-size: var(--font-body-s-size); }
+.forecast-row-body > span { color: var(--color-text-secondary); font-size: var(--font-caption-size); }
+
+/* Figma "Recommended action" cards. */
+.forecast-steps { display: flex; flex-direction: column; gap: var(--space-12); }
+.forecast-step { display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-12) var(--space-16); border-radius: var(--radius-md); background: var(--color-bg-subtle); color: inherit; text-decoration: none; }
+a.forecast-step:hover { background: var(--color-brand-primary-soft); }
+.forecast-step-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); font-size: var(--font-body-s-size); }
+.forecast-step-text { font-size: var(--font-caption-size); color: var(--color-text-secondary); line-height: var(--font-caption-line-height); }
+
+.forecast-brands .lo-sub { margin: var(--space-4) 0 0; }
+.forecast-brand-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-16); margin: var(--space-16) 0 0; padding: 0; list-style: none; }
 .forecast-brand-row { border-top: 1px solid var(--color-border-default); padding-top: var(--space-12); }
 .forecast-brand-heading { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
-.forecast-brand-row p { margin: var(--space-6) 0; }
-.forecast-brand-row details { color: var(--color-text-secondary); font-size: var(--font-body-s-size); }
-.forecast-brand-row summary { color: var(--color-text-brand); cursor: pointer; }
+.forecast-brand-row p { margin: var(--space-6) 0; font-size: var(--font-body-s-size); }
+.forecast-brand-row details,
+.forecast-method { color: var(--color-text-secondary); font-size: var(--font-body-s-size); }
+.forecast-brand-row summary,
+.forecast-method summary { color: var(--color-text-brand); cursor: pointer; }
+.forecast-method { margin-top: var(--space-16); }
 .forecast-method-steps { display: grid; gap: var(--space-8); padding-left: var(--space-20); }
 .forecast-method-steps li { padding-left: var(--space-4); }
-.forecast-basis-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); margin: var(--space-16) 0; }
-.forecast-basis-facts p { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; }
-.forecast-basis-facts span { color: var(--color-text-secondary); }
-.forecast-range-title { margin: var(--space-20) 0 var(--space-12); font-size: var(--font-body-m-size); }
-.forecast-range-track { position: relative; height: var(--space-10); border-radius: var(--radius-full); background: var(--color-brand-primary-border); }
+
+.forecast-range-track { position: relative; height: var(--space-10); margin: var(--space-8) 0 0; border-radius: var(--radius-full); background: var(--color-brand-primary-border); }
 .forecast-range-marker { position: absolute; top: 50%; width: var(--space-16); height: var(--space-16); border: var(--space-2) solid var(--color-bg-surface); border-radius: var(--radius-full); background: var(--color-text-brand); transform: translate(-50%, -50%); box-shadow: var(--shadow-elevation-1); }
 .forecast-range-labels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-8); margin-top: var(--space-8); font-size: var(--font-body-s-size); }
 .forecast-range-labels span { display: flex; flex-direction: column; }
 .forecast-range-labels span:nth-child(2) { text-align: center; }
 .forecast-range-labels span:last-child { text-align: right; }
 .forecast-range-labels small { color: var(--color-text-secondary); }
-.forecast-advisory { margin: var(--space-12) 0 0; font-size: var(--font-body-s-size); color: var(--color-text-secondary); }
-.forecast-capacity-context { background: var(--color-bg-subtle); margin-top: var(--space-20); }
-.forecast-capacity-context .forecast-metrics { margin-top: var(--space-16); }
+
 @media (max-width: 1200px) {
+  .forecast-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .forecast-chart-grid { grid-template-columns: minmax(0, 1fr); }
+  .forecast-brand-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 700px) {
   .forecast-metrics,
-  .forecast-brand-list,
-  .forecast-basis-facts { grid-template-columns: minmax(0, 1fr); }
+  .forecast-brand-list { grid-template-columns: minmax(0, 1fr); }
+  .forecast-chart-head { flex-direction: column; }
 }

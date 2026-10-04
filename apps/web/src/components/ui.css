@@ -41,6 +41,7 @@
 .metric { display: flex; flex-direction: column; gap: var(--space-4); }
 .metric-label { font-size: var(--font-caption-size); color: var(--color-text-secondary); }
 .metric-value { font-family: var(--font-kpi-m-family); font-size: var(--font-kpi-m-size); font-weight: var(--font-kpi-m-weight); line-height: var(--font-kpi-m-line-height); letter-spacing: var(--font-kpi-m-letter-spacing); }
+.metric-value-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); }
 .metric-caption { font-size: var(--font-caption-size); color: var(--color-text-secondary); }
 
 /* Table */

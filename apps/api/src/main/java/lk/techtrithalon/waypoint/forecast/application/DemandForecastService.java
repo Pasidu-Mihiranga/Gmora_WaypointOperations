@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.IsoFields;
@@ -38,8 +37,6 @@ import org.springframework.stereotype.Service;
 @PreAuthorize("hasRole('DISPATCHER')")
 public class DemandForecastService {
     private static final int SCALE = 3;
-    /** Recent completed weeks shown beside the projection. */
-    private static final int OBSERVED_TAIL_WEEKS = 6;
 
     private final DemandHistoryRepository repository;
     private final DemandForecastProvider provider;
@@ -67,9 +64,9 @@ public class DemandForecastService {
             throw new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Resource not found");
         }
         int horizon = requestedHorizon == null ? properties.horizonWeeks() : requestedHorizon;
-        if (horizon < 1 || horizon > 26) {
+        if (horizon < 1 || horizon > properties.maxHorizonWeeks()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_HORIZON",
-                "horizonWeeks must be between 1 and 26");
+                "horizonWeeks must be between 1 and " + properties.maxHorizonWeeks());
         }
 
         List<String> brands = repository.brands(depot);
@@ -99,13 +96,14 @@ public class DemandForecastService {
 
         var observed = repository.depotSeries(depot);
         var latest = observed.isEmpty() ? null : observed.getLast();
-        LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneId.of("Asia/Colombo"));
+        LocalDate today = LocalDate.ofInstant(clock.instant(), clock.getZone());
         Integer lag = latest == null ? null : Math.toIntExact(Math.max(0,
             ChronoUnit.WEEKS.between(weekMonday(latest.isoYear(), latest.isoWeek()),
                 today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))));
         return new DemandForecast(depot, provider.method(), provider.methodVersion(),
             properties.windowWeeks(), clock.instant(), latest == null ? null : latest.isoYear(),
-            latest == null ? null : latest.isoWeek(), lag, true, capacity(user, depot),
+            latest == null ? null : latest.isoWeek(), lag,
+            lag != null && lag > properties.staleAfterWeeks(), clock.getZone().getId(), true, capacity(user, depot),
             weeks(observed, today, horizon, anyAvailable,
                 depotTotal, depotChilled, depotLow, depotHigh),
             series);
@@ -121,7 +119,7 @@ public class DemandForecastService {
         List<DemandForecast.WeekRow> rows = new ArrayList<>();
         // A short tail of recent weeks is enough to read the projection against; a full horizon of
         // history would crowd the chart without telling the dispatcher anything more.
-        int observedTail = Math.min(history.size(), OBSERVED_TAIL_WEEKS);
+        int observedTail = Math.min(history.size(), properties.observedTailWeeks());
         for (var week : history.subList(history.size() - observedTail, history.size())) {
             rows.add(new DemandForecast.WeekRow(week.isoYear(), week.isoWeek(), week.operatingDays(), true,
                 week.totalVolumeM3(), week.chilledVolumeM3(), null, null, null, null, null, null));
@@ -176,12 +174,9 @@ public class DemandForecastService {
     }
 
     /** Brand series in the supplied history differ by an order of magnitude, so say so per series. */
-    /** Weekly volume below this is small enough that week-to-week swings dominate the average. */
-    private static final BigDecimal LOW_CONFIDENCE_VOLUME_M3 = BigDecimal.valueOf(100);
-
-    private static String confidence(SeriesForecast result) {
+    private String confidence(SeriesForecast result) {
         if (!result.available()) return "none";
-        return result.totalM3().compareTo(LOW_CONFIDENCE_VOLUME_M3) < 0 ? "low" : "high";
+        return result.totalM3().compareTo(properties.lowConfidenceVolumeM3()) < 0 ? "low" : "high";
     }
 
     private String basis(SeriesForecast result, List<DemandHistoryRepository.Week> history,

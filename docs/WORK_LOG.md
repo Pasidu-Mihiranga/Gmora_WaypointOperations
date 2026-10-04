@@ -4,6 +4,20 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Forecast hard-coded values audit
+
+- Audited the forecast API and screens for literals. Moved four business rules out of Java constants into `app.forecast.*` settings (`application.yml`, env-overridable): recorded weeks shown beside the projection (6), largest horizon (26), small-volume threshold (100 m³), and the weeks of lag before history counts as old (1).
+- The API now returns `historyStale` and `timeZone`, so the page no longer decides staleness (`> 1` week) or hard-codes `Asia/Colombo` / "Sri Lanka time". The service also reads the zone from the business `Clock` instead of a literal.
+- Kept as UI copy, not data: explanatory text, week-date formatting from the ISO week, and chart bar heights (scaled from API values). Capacity is still "one trip per vehicle" as the API computes it.
+- Verified with `ForecastReadIT`, contract regeneration, web tests, lint, curl (200 shape, 400 `INVALID_HORIZON`, 401 anonymous) and the smoke script check.
+
+## 2026-10-04 — Capacity forecast restyled to the Figma frame
+
+- Rebuilt the forecast screen in the structure of the Figma "Capacity Forecast" frame (`390:7953`): four KPI cards, two chart cards with legend and footnote, a chip-row "Estimate for the week" card and a "What to check next" card. Brand detail and the method steps moved into one lower card.
+- Chart colours use existing tokens: blue for total volume, green for chilled, stripes for estimated weeks. `MetricCard` gained an optional `badge` slot (used for "Older data" / "Estimate").
+- Not copied from Figma on purpose: Over/Critical badges, red over-capacity bars and "hire trucks" advice need a demand-vs-capacity comparison from the API, which belongs to the later capacity decision step. Showing them now would be invented numbers.
+- Files: `features/forecast/CapacityPages.tsx`, `forecast.css`, `CapacityPages.test.tsx`, `components/Card.tsx`, `components/ui.css`. Verified with the forecast test, type-check, lint and a rebuilt-stack screenshot.
+
 ## 2026-10-04 — Capacity forecast made readable for dispatchers
 
 - Finished the forecast screen revision: the single estimated bar was being pushed out of view by the history-gap note. The gap is now its own column ("19 weeks · no recorded orders") and the estimate is visible beside the last recorded week.

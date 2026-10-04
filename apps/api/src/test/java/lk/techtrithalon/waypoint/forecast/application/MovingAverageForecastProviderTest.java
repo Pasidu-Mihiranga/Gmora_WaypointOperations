@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 /** Synthetic weekly series; no dataset values. */
 class MovingAverageForecastProviderTest {
     private static final ForecastProperties PROPERTIES =
-        new ForecastProperties("unused", false, 13, 10, 13);
+        new ForecastProperties("unused", false, 13, 10, 13, 6, 26, java.math.BigDecimal.valueOf(100), 1);
     private final MovingAverageForecastProvider provider = new MovingAverageForecastProvider(PROPERTIES);
 
     private static DemandHistoryRepository.Week week(int isoWeek, double total, double chilled) {

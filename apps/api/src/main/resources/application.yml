@@ -99,6 +99,13 @@ app:
     horizon-weeks: ${FORECAST_HORIZON_WEEKS:10}
     # Fewest completed weeks before a series publishes any value.
     min-weeks: ${FORECAST_MIN_WEEKS:13}
+    # Recent completed weeks returned beside the projection so it can be read against them.
+    observed-tail-weeks: ${FORECAST_OBSERVED_TAIL_WEEKS:6}
+    max-horizon-weeks: ${FORECAST_MAX_HORIZON_WEEKS:26}
+    # Weekly volume (m3) under which a brand's average swings widely week to week.
+    low-confidence-volume-m3: ${FORECAST_LOW_CONFIDENCE_VOLUME_M3:100}
+    # The history is reported as old when its last week ends more than this many weeks before the run.
+    stale-after-weeks: ${FORECAST_STALE_AFTER_WEEKS:1}
   demo:
     # Explicit local walkthrough clock. Empty means real wall-clock; never backdate silently.
     clock-instant: ${DEMO_CLOCK_INSTANT:}

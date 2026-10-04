@@ -444,6 +444,9 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "historyStale" : {
+            "type" : "boolean"
+          },
           "latestObservedIsoWeek" : {
             "format" : "int32",
             "type" : "integer"
@@ -463,6 +466,9 @@
               "$ref" : "#/components/schemas/SeriesRow"
             },
             "type" : "array"
+          },
+          "timeZone" : {
+            "type" : "string"
           },
           "weeks" : {
             "items" : {

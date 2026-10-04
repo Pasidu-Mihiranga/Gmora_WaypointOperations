@@ -9,13 +9,17 @@ interface MetricCardProps {
   /** Formatted value. The number must come from the API; this component never computes it. */
   value: ReactNode
   caption?: ReactNode
+  /** Optional status pill beside the value (Figma KPI cards). */
+  badge?: ReactNode
 }
 
-export function MetricCard({ label, value, caption }: MetricCardProps) {
+export function MetricCard({ label, value, caption, badge }: MetricCardProps) {
   return (
     <Card className="metric">
       <span className="metric-label">{label}</span>
-      <span className="metric-value">{value}</span>
+      {badge
+        ? <span className="metric-value-row"><span className="metric-value">{value}</span>{badge}</span>
+        : <span className="metric-value">{value}</span>}
       {caption ? <span className="metric-caption">{caption}</span> : null}
     </Card>
   )

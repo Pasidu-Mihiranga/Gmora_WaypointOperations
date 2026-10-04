@@ -179,6 +179,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 o = json.load(sys.stdin)
 assert o["advisory"] is True, "forecast must declare itself advisory"
+assert isinstance(o["historyStale"], bool) and o["timeZone"], "forecast must report history age and time zone"
+assert o["historyStale"] == (o["weeksSinceLastObservation"] is not None and o["weeksSinceLastObservation"] > 1), "stale flag disagrees with the configured allowance"
 assert o["method"] and o["methodVersion"], "forecast must name its method and version"
 assert o["capacity"]["vehicles"] >= 0 and o["capacity"]["volumeCapM3"] is not None, "capacity context missing"
 observed = [w for w in o["weeks"] if w["observed"]]

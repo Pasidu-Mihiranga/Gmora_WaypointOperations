@@ -1457,6 +1457,7 @@ export interface components {
             depot?: string;
             /** Format: date-time */
             generatedAt?: string;
+            historyStale?: boolean;
             /** Format: int32 */
             latestObservedIsoWeek?: number;
             /** Format: int32 */
@@ -1464,6 +1465,7 @@ export interface components {
             method?: string;
             methodVersion?: string;
             series?: components["schemas"]["SeriesRow"][];
+            timeZone?: string;
             weeks?: components["schemas"]["WeekRow"][];
             /** Format: int32 */
             weeksSinceLastObservation?: number;

@@ -55,6 +55,9 @@ class ForecastReadIT extends ReferenceApiTestSupport {
             .andExpect(jsonPath("$.latestObservedIsoYear").value(2026))
             .andExpect(jsonPath("$.latestObservedIsoWeek").value(25))
             .andExpect(jsonPath("$.weeksSinceLastObservation").value(1))
+            // One week behind is within the configured allowance, so the history is not flagged old.
+            .andExpect(jsonPath("$.historyStale").value(false))
+            .andExpect(jsonPath("$.timeZone").value("Asia/Colombo"))
             .andExpect(jsonPath("$.series.length()").value(2))
             // Brands are reported separately because the history differs sharply between them.
             .andExpect(jsonPath("$.series[0].brand").value("Fresh"))
