@@ -4,6 +4,24 @@ This log tracks all development work, implementation milestones, ad-hoc tasks, a
 
 ---
 
+## 2026-10-04 — Production Demo Data Seeding & 4-Role Verification on EC2
+
+- Seeded operational demonstration lifecycle onto EC2 instance (`https://techtrithalon.duckdns.org`) using `scripts/seed-operating-day.py`:
+  - Reset and generated an operating day (`2026-06-26`) with 23 vehicle trips, 68 assigned orders, 17 deferred orders.
+  - Published plan version 1 and generated 23 load tasks across Peliyagoda depot fleet.
+  - Drove `VEH036` Trip 1 through loading handover, arrival, stop departures, and delivery records (5 orders delivered).
+  - Recorded a store delivery receipt dispute (`SHORT`, 2 units) and resolved it via dispatcher as `CREDIT`.
+  - Enriched with live demo states:
+    - Open held loading issue on `VEH003` Trip 1 (creates open exception in dispatcher queue).
+    - `VEH036` Trip 2 handed over to driver and currently active (`IN_PROGRESS`), leaving store order delivered awaiting receipt confirmation.
+    - 21 pending load tasks for loader demonstration and interactive execution.
+- Configured Cloudinary settings: cleared placeholder `CLOUDINARY_URL` on EC2 to allow optional POD mode without mandatory photo blocks (per ADR 0001).
+- Performed end-to-end live endpoint verification for all 4 user roles:
+  - **Dispatcher (`DSP-001`)**: Dashboard KPIs (61 planned orders, 21 trips ready, 1 active trip), published plans (200 OK), live operations with 23 tracked vehicles (200 OK), exceptions queue (1 open, 1 resolved) (200 OK), deferrals (17 recorded) (200 OK).
+  - **Store Manager (`STM-001`)**: Store home (200 OK), order board (2 orders tracked) (200 OK), catalog (chilled: 4 categories / 9 items, ambient: 4 categories / 9 items with server-calculated weight & volume) (200 OK), deliveries (history + pending receipt) (200 OK).
+  - **Loader (`LDR-001`)**: Load board (23 assigned trips, 68 orders to load, 8 loaded, 1 open issue, next departure card) (200 OK).
+  - **Driver (`DRV-001`)**: Driver home (progress 3/5 stops, 6/7 orders done) (200 OK), Trip 2 active with stop details and live timeline (200 OK).
+
 ## 2026-10-04 — Production HTTPS deployment, DuckDNS SSL & CI/CD deployment pipeline
 
 - Configured domain `techtrithalon.duckdns.org` pointing to EC2 (`3.215.181.43`) and provisioned a Let's Encrypt SSL certificate via Certbot.

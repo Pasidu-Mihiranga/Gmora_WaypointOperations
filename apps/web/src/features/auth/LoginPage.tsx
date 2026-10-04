@@ -103,6 +103,7 @@ export function LoginPage() {
                   disabled={pending}
                   title={`Fill ${r.role} (${r.username}) credentials`}
                   aria-pressed={isSelected}
+                  tabIndex={-1}
                 >
                   <span className="auth-quick-tag">{r.tag}</span>
                   <span className="auth-quick-name">{r.role}</span>

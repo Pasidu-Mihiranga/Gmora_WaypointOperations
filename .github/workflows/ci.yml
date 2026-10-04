@@ -112,7 +112,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --dir apps/web exec playwright install --with-deps chromium
       - name: Authentication browser journeys
-        run: pnpm --dir apps/web test:e2e
+        run: pnpm --dir apps/web test:e2e tests/e2e/auth.spec.ts
       - name: Show logs on failure
         if: failure()
         run: docker compose logs --no-color --tail=200

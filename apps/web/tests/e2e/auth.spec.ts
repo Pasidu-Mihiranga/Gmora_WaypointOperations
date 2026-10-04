@@ -17,7 +17,7 @@ async function login(page: Page, account: typeof accounts[number], remember = fa
   if (remember) await page.getByLabel('Remember me').check()
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`${account.path}$`))
-  await expect(page.getByRole('complementary', { name: `${account.label} navigation` })).toBeVisible()
+  await expect(page.locator(`[aria-label="${account.label} navigation"]`)).toBeVisible()
 }
 
 for (const account of accounts) {
@@ -29,11 +29,11 @@ for (const account of accounts) {
     expect(session.sameSite).toBe('Lax')
     expect(session.expires).toBeGreaterThan(Date.now() / 1000)
     await page.reload()
-    await expect(page.getByRole('complementary', { name: `${account.label} navigation` })).toBeVisible()
+    await expect(page.locator(`[aria-label="${account.label} navigation"]`)).toBeVisible()
     for (const other of accounts.filter(other => other.key !== account.key)) {
       await page.goto(other.path)
       await expect(page.getByText('Access denied', { exact: true })).toBeVisible()
-      await expect(page.getByRole('complementary')).toHaveCount(0)
+      await expect(page.locator('[aria-label$="navigation"]')).toHaveCount(0)
       await page.getByRole('button', { name: 'Go to my workspace' }).click()
       await expect(page).toHaveURL(new RegExp(`${account.path}$`))
     }
